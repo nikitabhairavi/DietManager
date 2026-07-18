@@ -1,7 +1,7 @@
 {
-    "files.associations": {
-        "memory": "cpp",
-        "utility": "cpp",
-        "type_traits": "cpp"
-    }
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit",
+    "source.sortMembers": "explicit"
+  }
 }
