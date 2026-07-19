@@ -25,6 +25,7 @@ interface SelectedItem {
   ingredientId: string;
   name: string;
   units: string;
+  quantityPerUnit: string; // <-- Tracked to render reference metric on selected rows
   caloriesPerUnit: number;
   proteinPerUnit: number;
   fiberPerUnit: number;
@@ -37,7 +38,7 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
   const [recipeName, setRecipeName] = useState('');
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(''); // <-- Search state
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Filter ingredients dynamically based on search query
   const filteredAvailableIngredients = useMemo(() => {
@@ -63,7 +64,7 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
   const handleSelectIngredient = (ing: typeof availableIngredients[0]) => {
     if (selectedItems.some((item) => item.ingredientId === ing.id)) {
       setShowDropdown(false);
-      setSearchQuery(''); // Reset search
+      setSearchQuery('');
       return;
     }
 
@@ -73,13 +74,14 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
         ingredientId: ing.id,
         name: ing.name,
         units: '1',
+        quantityPerUnit: ing.quantityPerUnit, // Capture string metric
         caloriesPerUnit: ing.caloriesPerUnit,
         proteinPerUnit: ing.proteinPerUnit,
         fiberPerUnit: ing.fiberPerUnit,
       },
     ]);
     setShowDropdown(false);
-    setSearchQuery(''); // Reset search
+    setSearchQuery('');
   };
 
   const handleUpdateUnits = (id: string, text: string) => {
@@ -178,7 +180,10 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
                       onPress={() => handleSelectIngredient(item)}
                     >
                       <Text style={styles.dropdownItemText}>{item.name}</Text>
-                      <Text style={styles.dropdownItemSub}>{item.caloriesPerUnit} kcal</Text>
+                      {/* Displays the baseline quantityPerUnit string metric */}
+                      <Text style={styles.dropdownItemSub}>
+                        Per unit: {item.quantityPerUnit} | {item.caloriesPerUnit} kcal
+                      </Text>
                     </TouchableOpacity>
                   )}
                   ListEmptyComponent={
@@ -197,9 +202,15 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
               nestedScrollEnabled
               renderItem={({ item }) => (
                 <View style={styles.selectedItemRow}>
-                  <Text style={styles.selectedItemName} numberOfLines={1}>
-                    {item.name}
-                  </Text>
+                  <View style={styles.selectedItemInfo}>
+                    <Text style={styles.selectedItemName} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    {/* Tiny visual footprint showing baseline scale unit context */}
+                    <Text style={styles.selectedItemMetric}>
+                      Base unit: {item.quantityPerUnit}
+                    </Text>
+                  </View>
 
                   <View style={styles.unitInputContainer}>
                     <TextInput
@@ -208,7 +219,7 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
                       value={item.units}
                       onChangeText={(text) => handleUpdateUnits(item.ingredientId, text)}
                     />
-                    <Text style={styles.unitLabel}>units</Text>
+                    <Text style={styles.unitLabel}>x units</Text>
                   </View>
 
                   <TouchableOpacity onPress={() => handleRemoveItem(item.ingredientId)}>
@@ -342,8 +353,8 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   dropdownItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    justifyContent: 'center',
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F2F2F7',
@@ -352,6 +363,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#000',
     fontWeight: '500',
+    marginBottom: 2,
   },
   dropdownItemSub: {
     fontSize: 13,
@@ -364,7 +376,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   selectedItemsList: {
-    maxHeight: 140,
+    maxHeight: 160,
     marginTop: 4,
     marginBottom: 16,
   },
@@ -378,11 +390,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E5EA',
   },
-  selectedItemName: {
+  selectedItemInfo: {
     flex: 1,
+    marginRight: 8,
+  },
+  selectedItemName: {
     fontSize: 15,
     fontWeight: '500',
     color: '#333',
+    marginBottom: 2,
+  },
+  selectedItemMetric: {
+    fontSize: 12,
+    color: '#8E8E93',
   },
   unitInputContainer: {
     flexDirection: 'row',
