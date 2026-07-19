@@ -1,4 +1,4 @@
-import { useIngredientsStore } from '@/app/data/dataStores/ingredientsStore/useIngredientStore';
+import { useIngredientsStore } from '@/data/dataStores/ingredientsStore/useIngredientStore';
 import React, { useState } from 'react';
 import {
   Keyboard,

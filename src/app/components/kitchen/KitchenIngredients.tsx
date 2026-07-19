@@ -1,4 +1,4 @@
-import { useIngredientsStore } from '@/app/data/dataStores/ingredientsStore/useIngredientStore';
+import { useIngredientsStore } from '@/data/dataStores/ingredientsStore/useIngredientStore';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -13,8 +13,11 @@ export const KitchenIngredients: React.FC<KitchenIngredientsProps> = ({ searchQu
   const removeIngredient = useIngredientsStore((state) => state.deleteIngredient);
 
   // Filter list matching lowercase search strings
-  const filteredIngredients = ingredients.filter((ing) =>
-    ing.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredIngredients = ingredients.filter((ing) => {
+    if (ing.name) {
+      return ing.name.toLowerCase().includes(searchQuery.toLowerCase())
+    }
+  }
   );
 
   return (
@@ -30,10 +33,10 @@ export const KitchenIngredients: React.FC<KitchenIngredientsProps> = ({ searchQu
               Per unit: {item.quantityPerUnit} | {item.caloriesPerUnit} kcal | P: {item.proteinPerUnit}g | F: {item.fiberPerUnit}g
             </Text>
           </View>
-          
+
           {/* Delete Action Button */}
-          <TouchableOpacity 
-            style={styles.deleteButton} 
+          <TouchableOpacity
+            style={styles.deleteButton}
             onPress={() => removeIngredient(item.id)}
             activeOpacity={0.6}
           >

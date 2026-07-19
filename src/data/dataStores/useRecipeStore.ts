@@ -19,40 +19,40 @@ export interface Recipe {
 
 interface RecipesState {
   recipes: Recipe[];
-  addRecipe: (
-    name: string, 
-    ingredients: RecipeIngredient[], 
-    totals: { calories: number; protein: number; fiber: number }
-  ) => void;
+  addRecipe: (recipe: Recipe) => void;
   deleteRecipe: (id: string) => void;
 }
 
-export const useRecipesStore = create<RecipesState>()(
+export const useRecipeStore = create<RecipesState>()(
   persist(
     (set) => ({
       recipes: [],
-      
-      addRecipe: (name, ingredients, totals) => set((state) => ({
-        recipes: [
-          ...state.recipes,
-          {
-            id: Math.random().toString(36).substring(7),
-            name,
-            ingredients,
-            totalCalories: totals.calories,
-            totalProtein: totals.protein,
-            totalFiber: totals.fiber,
-          }
-        ]
-      })),
-      
+      addRecipe: (recipe) => set((state) => {
+        // Safe validation check against unhydrated state cache
+        const currentRecipes = state && state.recipes ? state.recipes : [];
+
+        return {
+          recipes: [
+            ...currentRecipes,
+            {
+              id: recipe.id || Math.random().toString(36).substring(7),
+              name: recipe.name,
+              ingredients: recipe.ingredients,
+              totalCalories: recipe.totalCalories,
+              totalProtein: recipe.totalProtein,
+              totalFiber: recipe.totalFiber,
+            }
+          ]
+        };
+      }),
+
       deleteRecipe: (id) => set((state) => ({
         recipes: state.recipes.filter((rec) => rec.id !== id)
       })),
     }),
     {
       // Distinct key used to save this data slice inside your shared MMKV database
-      name: 'recipes-app-state',
+      name: 'recipes',
       storage: createJSONStorage(() => appStorage),
     }
   )

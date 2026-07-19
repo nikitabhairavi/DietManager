@@ -1,17 +1,21 @@
-import { useRecipesStore } from '@/app/data/dataStores/useRecipeStore';
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRecipeStore } from '../../../data/dataStores/useRecipeStore';
 
 interface KitchenRecipesProps {
   searchQuery: string;
 }
 
 export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) => {
-  const recipes = useRecipesStore((state) => state.recipes);
+  // Pull recipes and the optional delete action from your store slice
+  const recipes = useRecipeStore((state) => state.recipes);
+  const removeRecipe = useRecipeStore((state) => (state as any).removeRecipe);
 
   // Filter list matching lowercase search strings
-  const filteredRecipes = recipes.filter((rec) =>
-    rec.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredRecipes = recipes.filter((rec) => {
+    return rec.name.toLowerCase().includes(searchQuery.toLowerCase())
+  }
   );
 
   return (
@@ -21,10 +25,23 @@ export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) =
       contentContainerStyle={styles.listPadding}
       renderItem={({ item }) => (
         <View style={styles.itemCard}>
-          <Text style={styles.itemName}>{item.name}</Text>
-          <Text style={styles.itemDetails}>
-            Totals: {item.totalCalories} kcal | P: {item.totalProtein}g | F: {item.totalFiber}g
-          </Text>
+          <View style={styles.cardContent}>
+            <Text style={styles.itemName}>{item.name}</Text>
+            <Text style={styles.itemDetails}>
+              Totals: {item.totalCalories} kcal | P: {item.totalProtein}g | F: {item.totalFiber}g
+            </Text>
+          </View>
+
+          {/* Delete Action Button */}
+          {removeRecipe && (
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => removeRecipe(item.id)}
+              activeOpacity={0.6}
+            >
+              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+            </TouchableOpacity>
+          )}
         </View>
       )}
       ListEmptyComponent={
@@ -46,11 +63,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 16,
     marginBottom: 10,
+    flexDirection: 'row', // Align layout to display the trash icon horizontally
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+  },
+  cardContent: {
+    flex: 1,
   },
   itemName: {
     fontSize: 17,
@@ -61,6 +83,10 @@ const styles = StyleSheet.create({
   itemDetails: {
     fontSize: 14,
     color: '#666666',
+  },
+  deleteButton: {
+    padding: 8,
+    marginLeft: 10,
   },
   emptyText: {
     textAlign: 'center',
