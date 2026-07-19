@@ -12,7 +12,6 @@ import {
   TouchableWithoutFeedback,
   View
 } from 'react-native';
-// Updated to reflect business logic directory mapping
 
 interface AddIngredientModalProps {
   isVisible: boolean;
@@ -35,15 +34,14 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({ isVisibl
       return;
     }
 
-    const quantityPerUnit = '';
     const caloriesPerUnit = parseFloat(calories) || 0;
     const proteinPerUnit = parseFloat(protein) || 0;
     const fiberPerUnit = parseFloat(fiber) || 0;
 
-    // Dispatch payload with a clean unique string identifier
+    // Dispatch payload, preserving quantityStr purely as a string
     addIngredient({
       name: name.trim(),
-      quantityPerUnit,
+      quantityPerUnit: quantityStr, // <-- Now saved exactly as typed
       caloriesPerUnit,
       proteinPerUnit,
       fiberPerUnit,
@@ -62,7 +60,7 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({ isVisibl
   return (
     <Modal
       visible={isVisible}
-      animationType="fade" // Fades background mask and container smoothly
+      animationType="fade"
       transparent={true}
       onRequestClose={onClose}
     >
@@ -85,12 +83,12 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({ isVisibl
             />
 
             {/* Quantity per Unit */}
-            <Text style={styles.inputLabel}>Quantity Per Unit (String Input)</Text>
+            <Text style={styles.inputLabel}>Quantity Per Unit</Text>
             <TextInput
               style={styles.textInput}
-              placeholder="e.g., 100 for 100g, 1 for single item"
+              placeholder="e.g., 100g, 1 piece, 50"
               placeholderTextColor="#999"
-              keyboardType="numeric"
+              keyboardType="default" // <-- Changed to default to accept plain text units naturally
               value={quantityStr}
               onChangeText={setQuantityStr}
             />
@@ -155,8 +153,8 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center', // Centers the card vertically
-    alignItems: 'center',     // Centers the card horizontally
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContainer: {
     backgroundColor: '#FFF',
@@ -165,7 +163,7 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     paddingHorizontal: 24,
     paddingTop: 28,
-    paddingBottom: 32,        // Increased from 28 to give the buttons breathing room at the bottom
+    paddingBottom: 32,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -175,15 +173,15 @@ const styles = StyleSheet.create({
   macroRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,         // Reduced slightly from 28 to balance out the form height
+    marginBottom: 16,
   },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 12,            // Added a top margin to push the buttons cleanly away from the inputs
+    marginTop: 12,
   },
   modalTitle: {
-    fontSize: 22,             // Marginally scaled header presence
+    fontSize: 22,
     fontWeight: '700',
     color: '#111',
     marginBottom: 24,
@@ -206,11 +204,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E5EA',
   },
-
   macroCol: {
-    flex: 0.31,               // Sized slightly wider for extra macro value space
+    flex: 0.31,
   },
-
   btn: {
     marginBottom: 10,
     flex: 0.48,
