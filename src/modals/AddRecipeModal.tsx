@@ -24,7 +24,7 @@ interface AddRecipeModalProps {
 interface SelectedItem {
   ingredientId: string;
   name: string;
-  units: string; // <-- Changed to string to allow typing fractional units natively (e.g., "0.5")
+  units: string;
   caloriesPerUnit: number;
   proteinPerUnit: number;
   fiberPerUnit: number;
@@ -37,8 +37,16 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
   const [recipeName, setRecipeName] = useState('');
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(''); // <-- Search state
 
-  // Core Calculator: Safely parse rolling fractional strings to numbers for accurate macro calculations
+  // Filter ingredients dynamically based on search query
+  const filteredAvailableIngredients = useMemo(() => {
+    return availableIngredients.filter((ing) =>
+      ing.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [availableIngredients, searchQuery]);
+
+  // Core Calculator: Safely parse rolling fractional strings to numbers
   const totals = useMemo(() => {
     return selectedItems.reduce(
       (acc, item) => {
@@ -53,9 +61,9 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
   }, [selectedItems]);
 
   const handleSelectIngredient = (ing: typeof availableIngredients[0]) => {
-    // Prevent adding duplicates into the construction matrix
     if (selectedItems.some((item) => item.ingredientId === ing.id)) {
       setShowDropdown(false);
+      setSearchQuery(''); // Reset search
       return;
     }
 
@@ -64,17 +72,17 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
       {
         ingredientId: ing.id,
         name: ing.name,
-        units: '1', // Default base scale multiplier as a string
+        units: '1',
         caloriesPerUnit: ing.caloriesPerUnit,
         proteinPerUnit: ing.proteinPerUnit,
         fiberPerUnit: ing.fiberPerUnit,
       },
     ]);
     setShowDropdown(false);
+    setSearchQuery(''); // Reset search
   };
 
   const handleUpdateUnits = (id: string, text: string) => {
-    // Allow any text pattern that corresponds to forming decimal values (e.g., "", "0", "0.", "0.5")
     setSelectedItems((prev) =>
       prev.map((item) => (item.ingredientId === id ? { ...item, units: text } : item))
     );
@@ -100,16 +108,16 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
       ingredients: selectedItems.map((item) => ({
         ingredientId: item.ingredientId,
         name: item.name,
-        unitsUsed: parseFloat(item.units) || 0, // Converted to number safely at dispatch boundary
+        unitsUsed: parseFloat(item.units) || 0,
       })),
       totalCalories: parseFloat(totals.calories.toFixed(1)),
       totalProtein: parseFloat(totals.protein.toFixed(1)),
       totalFiber: parseFloat(totals.fiber.toFixed(1)),
     });
 
-    // Reset Sandbox State
     setRecipeName('');
     setSelectedItems([]);
+    setSearchQuery('');
     onClose();
   };
 
@@ -143,11 +151,24 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
               <Ionicons name={showDropdown ? 'chevron-up' : 'chevron-down'} size={20} color="#666" />
             </TouchableOpacity>
 
-            {/* Expandable Kitchen Stock Dropdown Overlay */}
+            {/* Expandable Kitchen Stock Dropdown Overlay with Search */}
             {showDropdown && (
               <View style={styles.dropdownListContainer}>
+                {/* Search Bar Inside Dropdown */}
+                <View style={styles.searchBarContainer}>
+                  <Ionicons name="search" size={16} color="#999" style={styles.searchIcon} />
+                  <TextInput
+                    style={styles.dropdownSearchInput}
+                    placeholder="Search kitchen ingredients..."
+                    placeholderTextColor="#999"
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    autoFocus
+                  />
+                </View>
+
                 <FlatList
-                  data={availableIngredients}
+                  data={filteredAvailableIngredients}
                   keyExtractor={(item) => item.id}
                   style={{ maxHeight: 160 }}
                   nestedScrollEnabled
@@ -160,6 +181,9 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
                       <Text style={styles.dropdownItemSub}>{item.caloriesPerUnit} kcal</Text>
                     </TouchableOpacity>
                   )}
+                  ListEmptyComponent={
+                    <Text style={styles.dropdownEmptyText}>No ingredients found.</Text>
+                  }
                 />
               </View>
             )}
@@ -180,8 +204,8 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
                   <View style={styles.unitInputContainer}>
                     <TextInput
                       style={styles.unitInput}
-                      keyboardType="decimal-pad" // <-- Changed to decimal-pad to easily key in fractional dots
-                      value={item.units} // <-- Directly uses string state
+                      keyboardType="decimal-pad"
+                      value={item.units}
                       onChangeText={(text) => handleUpdateUnits(item.ingredientId, text)}
                     />
                     <Text style={styles.unitLabel}>units</Text>
@@ -300,6 +324,23 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F7',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    paddingHorizontal: 12,
+  },
+  searchIcon: {
+    marginRight: 6,
+  },
+  dropdownSearchInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#000',
+  },
   dropdownItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -315,6 +356,12 @@ const styles = StyleSheet.create({
   dropdownItemSub: {
     fontSize: 13,
     color: '#8E8E93',
+  },
+  dropdownEmptyText: {
+    textAlign: 'center',
+    color: '#8E8E93',
+    fontSize: 14,
+    paddingVertical: 16,
   },
   selectedItemsList: {
     maxHeight: 140,
@@ -347,7 +394,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#C7C7CC',
     borderRadius: 6,
-    width: 60, // Widened slightly to prevent longer fractional digits (e.g., "0.75") from clipping
+    width: 60,
     paddingVertical: 4,
     paddingHorizontal: 6,
     textAlign: 'center',
