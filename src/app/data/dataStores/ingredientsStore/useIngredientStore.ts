@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { appStorage } from '../DataStore/dataStorage';
+import { appStorage } from '../../storage/dataStorage';
+import { initialIngredients } from './initialData';
 
 export interface Ingredient {
   id: string;
@@ -22,7 +23,7 @@ interface IngredientsState {
 export const useIngredientsStore = create<IngredientsState>()(
   persist(
     (set) => ({
-      ingredients: [],
+      ingredients: initialIngredients,
       
       addIngredient: (ingredient) => set((state) => ({
         ingredients: [
@@ -46,7 +47,7 @@ export const useIngredientsStore = create<IngredientsState>()(
     }),
     {
       // The distinct key name used to isolate this slice within the single MMKV instance
-      name: 'ingredients-app-state',
+      name: 'ingredients',
       storage: createJSONStorage(() => appStorage),
     }
   )

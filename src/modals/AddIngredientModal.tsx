@@ -1,3 +1,4 @@
+import { useIngredientsStore } from '@/app/data/dataStores/ingredientsStore/useIngredientStore';
 import React, { useState } from 'react';
 import {
   Keyboard,
@@ -11,7 +12,7 @@ import {
   TouchableWithoutFeedback,
   View
 } from 'react-native';
-import { useIngredientsStore } from '../app/data/dataStores/useIngredientStore';
+// Updated to reflect business logic directory mapping
 
 interface AddIngredientModalProps {
   isVisible: boolean;
@@ -23,7 +24,7 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({ isVisibl
 
   // Form states
   const [name, setName] = useState('');
-  const [quantityStr, setQuantityStr] = useState(''); // Managed as a string input per requirements
+  const [quantityStr, setQuantityStr] = useState(''); 
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
   const [fiber, setFiber] = useState('');
@@ -34,14 +35,14 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({ isVisibl
       return;
     }
 
-    // Safely parse values or fallback to 0
     const quantityPerUnit = parseFloat(quantityStr) || 0;
     const caloriesPerUnit = parseFloat(calories) || 0;
     const proteinPerUnit = parseFloat(protein) || 0;
     const fiberPerUnit = parseFloat(fiber) || 0;
 
-    // Dispatch payload to our persistent MMKV-Zustand store
+    // Dispatch payload with a clean unique string identifier
     addIngredient({
+      id: Date.now().toString(),
       name: name.trim(),
       quantityPerUnit,
       caloriesPerUnit,
@@ -62,7 +63,7 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({ isVisibl
   return (
     <Modal
       visible={isVisible}
-      animationType="slide"
+      animationType="fade" // Fades background mask and container smoothly
       transparent={true}
       onRequestClose={onClose}
     >
@@ -155,26 +156,38 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center', // Centers the card vertically
+    alignItems: 'center',     // Centers the card horizontally
   },
-  modalContainer: {
+ modalContainer: {
     backgroundColor: '#FFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    borderRadius: 20,         
+    width: '88%',             
+    maxWidth: 400,            
+    paddingHorizontal: 24,    
+    paddingTop: 28,
+    paddingBottom: 32,        // Increased from 28 to give the buttons breathing room at the bottom
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  macroRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,         // Reduced slightly from 28 to balance out the form height
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,            // Added a top margin to push the buttons cleanly away from the inputs
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,             // Marginally scaled header presence
     fontWeight: '700',
     color: '#111',
-    marginBottom: 20,
+    marginBottom: 24,
     textAlign: 'center',
   },
   inputLabel: {
@@ -194,19 +207,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E5EA',
   },
-  macroRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
+  
   macroCol: {
-    flex: 0.3,
+    flex: 0.31,               // Sized slightly wider for extra macro value space
   },
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
+
   btn: {
+    marginBottom: 10,
     flex: 0.48,
     borderRadius: 12,
     paddingVertical: 14,

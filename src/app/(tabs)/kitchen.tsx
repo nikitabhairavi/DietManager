@@ -1,9 +1,9 @@
-import { KitchenRecipes } from '@/components/kitchen/KitchenRecipes';
 import { AddIngredientModal } from '@/modals/AddIngredientModal';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { KitchenIngredients } from '../components/kitchen/KitchenIngredients';
+import { KitchenRecipes } from '../components/kitchen/KitchenRecipes';
 
 // Modular Child Target Imports
 

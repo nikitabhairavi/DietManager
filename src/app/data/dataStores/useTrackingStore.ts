@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { appStorage } from '../DataStore/dataStorage';
+import { appStorage } from '../storage/dataStorage';
 import { useGoalsStore } from './useGoalStore';
 
 export interface ConsumedMeal {
