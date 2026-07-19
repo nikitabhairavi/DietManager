@@ -20,7 +20,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="progress" 
+        name="progress"
         options={{
           title: 'Progress',
           tabBarIcon: ({ color, focused }) => (
@@ -29,7 +29,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="kitchen" 
+        name="kitchen"
         options={{
           title: 'Kitchen',
           tabBarIcon: ({ color, focused }) => (
@@ -38,11 +38,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="recipes" 
+        name="rewards"
         options={{
-          title: 'Recipes',
+          title: 'Rewards',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'book' : 'book-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'gift' : 'gift-outline'} size={24} color={color} />
           ),
         }}
       />
