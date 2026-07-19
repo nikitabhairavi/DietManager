@@ -1,18 +1,17 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { Stack } from 'expo-router';
+import React from 'react';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
-
-SplashScreen.preventAutoHideAsync();
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+export default function RootStackLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <Stack screenOptions={{ headerShown: false }}>
+      {/* The main tab group screen */}
+      <Stack.Screen name="(tabs)" />
+      
+      {/* 
+        Future detail screens can be registered here like this:
+        <Stack.Screen name="ingredient-detail" options={{ presentation: 'card' }} />
+        <Stack.Screen name="add-meal-modal" options={{ presentation: 'modal' }} />
+      */}
+    </Stack>
   );
 }
