@@ -24,7 +24,7 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({ isVisibl
 
   // Form states
   const [name, setName] = useState('');
-  const [quantityStr, setQuantityStr] = useState(''); 
+  const [quantityStr, setQuantityStr] = useState('');
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
   const [fiber, setFiber] = useState('');
@@ -42,7 +42,6 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({ isVisibl
 
     // Dispatch payload with a clean unique string identifier
     addIngredient({
-      id: Date.now().toString(),
       name: name.trim(),
       quantityPerUnit,
       caloriesPerUnit,
@@ -56,7 +55,7 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({ isVisibl
     setCalories('');
     setProtein('');
     setFiber('');
-    
+
     onClose();
   };
 
@@ -69,7 +68,7 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({ isVisibl
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView 
+          <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.modalContainer}
           >
@@ -159,12 +158,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center', // Centers the card vertically
     alignItems: 'center',     // Centers the card horizontally
   },
- modalContainer: {
+  modalContainer: {
     backgroundColor: '#FFF',
-    borderRadius: 20,         
-    width: '88%',             
-    maxWidth: 400,            
-    paddingHorizontal: 24,    
+    borderRadius: 20,
+    width: '88%',
+    maxWidth: 400,
+    paddingHorizontal: 24,
     paddingTop: 28,
     paddingBottom: 32,        // Increased from 28 to give the buttons breathing room at the bottom
     shadowColor: '#000',
@@ -207,7 +206,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E5EA',
   },
-  
+
   macroCol: {
     flex: 0.31,               // Sized slightly wider for extra macro value space
   },
