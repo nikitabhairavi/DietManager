@@ -24,7 +24,7 @@ interface AddRecipeModalProps {
 interface SelectedItem {
   ingredientId: string;
   name: string;
-  units: number;
+  units: string; // <-- Changed to string to allow typing fractional units natively (e.g., "0.5")
   caloriesPerUnit: number;
   proteinPerUnit: number;
   fiberPerUnit: number;
@@ -38,13 +38,14 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Core Calculator: Compute rolling totals instantly when selected items or quantities change
+  // Core Calculator: Safely parse rolling fractional strings to numbers for accurate macro calculations
   const totals = useMemo(() => {
     return selectedItems.reduce(
       (acc, item) => {
-        acc.calories += item.caloriesPerUnit * item.units;
-        acc.protein += item.proteinPerUnit * item.units;
-        acc.fiber += item.fiberPerUnit * item.units;
+        const parsedUnits = parseFloat(item.units) || 0;
+        acc.calories += item.caloriesPerUnit * parsedUnits;
+        acc.protein += item.proteinPerUnit * parsedUnits;
+        acc.fiber += item.fiberPerUnit * parsedUnits;
         return acc;
       },
       { calories: 0, protein: 0, fiber: 0 }
@@ -63,7 +64,7 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
       {
         ingredientId: ing.id,
         name: ing.name,
-        units: 1, // Default base scale multiplier
+        units: '1', // Default base scale multiplier as a string
         caloriesPerUnit: ing.caloriesPerUnit,
         proteinPerUnit: ing.proteinPerUnit,
         fiberPerUnit: ing.fiberPerUnit,
@@ -73,9 +74,9 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
   };
 
   const handleUpdateUnits = (id: string, text: string) => {
-    const parsedUnits = parseFloat(text) || 0;
+    // Allow any text pattern that corresponds to forming decimal values (e.g., "", "0", "0.", "0.5")
     setSelectedItems((prev) =>
-      prev.map((item) => (item.ingredientId === id ? { ...item, units: parsedUnits } : item))
+      prev.map((item) => (item.ingredientId === id ? { ...item, units: text } : item))
     );
   };
 
@@ -99,7 +100,7 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
       ingredients: selectedItems.map((item) => ({
         ingredientId: item.ingredientId,
         name: item.name,
-        unitsUsed: item.units,
+        unitsUsed: parseFloat(item.units) || 0, // Converted to number safely at dispatch boundary
       })),
       totalCalories: parseFloat(totals.calories.toFixed(1)),
       totalProtein: parseFloat(totals.protein.toFixed(1)),
@@ -179,8 +180,8 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
                   <View style={styles.unitInputContainer}>
                     <TextInput
                       style={styles.unitInput}
-                      keyboardType="numeric"
-                      value={item.units.toString()}
+                      keyboardType="decimal-pad" // <-- Changed to decimal-pad to easily key in fractional dots
+                      value={item.units} // <-- Directly uses string state
                       onChangeText={(text) => handleUpdateUnits(item.ingredientId, text)}
                     />
                     <Text style={styles.unitLabel}>units</Text>
@@ -346,7 +347,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#C7C7CC',
     borderRadius: 6,
-    width: 50,
+    width: 60, // Widened slightly to prevent longer fractional digits (e.g., "0.75") from clipping
     paddingVertical: 4,
     paddingHorizontal: 6,
     textAlign: 'center',
