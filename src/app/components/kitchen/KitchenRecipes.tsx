@@ -1,7 +1,8 @@
+import { RecipeDetailModal } from '@/modals/RecipeDetailsModal';
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useRecipeStore } from '../../../data/dataStores/recipeStore/useRecipeStore';
+import { Recipe, useRecipeStore } from '../../../data/dataStores/recipeStore/useRecipeStore';
 
 interface KitchenRecipesProps {
   searchQuery: string;
@@ -9,46 +10,80 @@ interface KitchenRecipesProps {
 
 export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) => {
   const recipes = useRecipeStore((state) => state.recipes);
-  const removeRecipe = useRecipeStore((state) => state.deleteRecipe); // Clean typed selector
+  const removeRecipe = useRecipeStore((state) => state.deleteRecipe);
+
+  // States to handle visibility and the context of the active model sheet
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   const filteredRecipes = recipes.filter((rec) =>
     rec.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  return (
-    <FlatList
-      data={filteredRecipes}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={styles.listPadding}
-      renderItem={({ item }) => (
-        <View style={styles.itemCard}>
-          <View style={styles.cardContent}>
-            <Text style={styles.itemName}>{item.name}</Text>
-            <Text style={styles.itemDetails}>
-              Totals: {item.totalCalories} kcal | P: {item.totalProtein}g | F: {item.totalFiber}g
-            </Text>
-          </View>
+  const handleOpenDetails = (recipe: Recipe) => {
+    setSelectedRecipe(recipe);
+    setIsModalVisible(true);
+  };
 
-          {/* Delete Action Button will now show up automatically */}
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+    setSelectedRecipe(null);
+  };
+
+  return (
+    <View style={styles.wrapper}>
+      <FlatList
+        data={filteredRecipes}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listPadding}
+        renderItem={({ item }) => (
+          /* Entire item card is now an interactive trigger */
           <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => removeRecipe(item.id)}
-            activeOpacity={0.6}
+            style={styles.itemCard}
+            activeOpacity={0.7}
+            onPress={() => handleOpenDetails(item)}
           >
-            <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+            <View style={styles.cardContent}>
+              <Text style={styles.itemName}>{item.name}</Text>
+              <Text style={styles.itemDetails}>
+                Totals: {item.totalCalories} kcal | P: {item.totalProtein}g | F: {item.totalFiber}g
+              </Text>
+            </View>
+
+            {/* Trash button stops bubble propagation to ensure deletion doesn't fire modal open */}
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                removeRecipe(item.id);
+              }}
+              activeOpacity={0.6}
+            >
+              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+            </TouchableOpacity>
           </TouchableOpacity>
-        </View>
-      )}
-      ListEmptyComponent={
-        <Text style={styles.emptyText}>
-          {searchQuery ? 'No matching recipes found.' : 'No recipes created yet. Tap + to build one.'}
-        </Text>
-      }
-    />
+        )}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>
+            {searchQuery ? 'No matching recipes found.' : 'No recipes created yet. Tap + to build one.'}
+          </Text>
+        }
+      />
+
+      {/* Embedded Portal Layer for Recipe Specific Updates */}
+      <RecipeDetailModal
+        recipe={selectedRecipe}
+        isVisible={isModalVisible}
+        onClose={handleCloseModal}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flex: 1,
+  },
   listPadding: {
     paddingHorizontal: 20,
     paddingBottom: 90,
