@@ -8,14 +8,11 @@ interface KitchenRecipesProps {
 }
 
 export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) => {
-  // Pull recipes and the optional delete action from your store slice
   const recipes = useRecipeStore((state) => state.recipes);
-  const removeRecipe = useRecipeStore((state) => (state as any).removeRecipe);
+  const removeRecipe = useRecipeStore((state) => state.deleteRecipe); // Clean typed selector
 
-  // Filter list matching lowercase search strings
-  const filteredRecipes = recipes.filter((rec) => {
-    return rec.name.toLowerCase().includes(searchQuery.toLowerCase())
-  }
+  const filteredRecipes = recipes.filter((rec) =>
+    rec.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -32,16 +29,14 @@ export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) =
             </Text>
           </View>
 
-          {/* Delete Action Button */}
-          {removeRecipe && (
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => removeRecipe(item.id)}
-              activeOpacity={0.6}
-            >
-              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-            </TouchableOpacity>
-          )}
+          {/* Delete Action Button will now show up automatically */}
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => removeRecipe(item.id)}
+            activeOpacity={0.6}
+          >
+            <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+          </TouchableOpacity>
         </View>
       )}
       ListEmptyComponent={
@@ -63,7 +58,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 16,
     marginBottom: 10,
-    flexDirection: 'row', // Align layout to display the trash icon horizontally
+    flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
