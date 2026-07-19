@@ -1,19 +1,19 @@
 import { useIngredientsStore } from '@/data/dataStores/ingredientsStore/useIngredientStore';
-import { useRecipeStore } from '@/data/dataStores/useRecipeStore';
+import { useRecipeStore } from '@/data/dataStores/recipeStore/useRecipeStore';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {
-    FlatList,
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 
 interface AddRecipeModalProps {
@@ -175,7 +175,7 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
                   <Text style={styles.selectedItemName} numberOfLines={1}>
                     {item.name}
                   </Text>
-                  
+
                   <View style={styles.unitInputContainer}>
                     <TextInput
                       style={styles.unitInput}

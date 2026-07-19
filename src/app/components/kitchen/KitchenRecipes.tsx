@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useRecipeStore } from '../../../data/dataStores/useRecipeStore';
+import { useRecipeStore } from '../../../data/dataStores/recipeStore/useRecipeStore';
 
 interface KitchenRecipesProps {
   searchQuery: string;

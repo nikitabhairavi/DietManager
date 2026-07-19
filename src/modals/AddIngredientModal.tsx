@@ -35,7 +35,7 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({ isVisibl
       return;
     }
 
-    const quantityPerUnit = parseFloat(quantityStr) || 0;
+    const quantityPerUnit = '';
     const caloriesPerUnit = parseFloat(calories) || 0;
     const proteinPerUnit = parseFloat(protein) || 0;
     const fiberPerUnit = parseFloat(fiber) || 0;

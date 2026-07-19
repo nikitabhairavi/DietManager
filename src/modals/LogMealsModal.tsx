@@ -1,5 +1,5 @@
 import { useMealsStore } from '@/data/dataStores/meals/useMealsStore';
-import { Recipe, useRecipeStore } from '@/data/dataStores/useRecipeStore';
+import { Recipe, useRecipeStore } from '@/data/dataStores/recipeStore/useRecipeStore';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {

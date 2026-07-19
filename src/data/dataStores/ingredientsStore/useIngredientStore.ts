@@ -7,7 +7,7 @@ export interface Ingredient {
   id: string;
   name: string;
   imageUri?: string;       // Local filepath or captured photo URI
-  quantityPerUnit: number; // e.g., 100 for 100g, 1 for a single unit
+  quantityPerUnit: string; // e.g., 100 for 100g, 1 for a single unit
   caloriesPerUnit: number;
   proteinPerUnit: number;
   fiberPerUnit: number;

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { appStorage } from '../storage/dataStorage';
-
+import { appStorage } from '../../storage/dataStorage';
+import { initialRecipes } from './initialData';
 export interface RecipeIngredient {
   ingredientId: string;
   name: string;      // Snapshotted at the time of addition for quick presentation
@@ -26,7 +26,7 @@ interface RecipesState {
 export const useRecipeStore = create<RecipesState>()(
   persist(
     (set) => ({
-      recipes: [],
+      recipes: initialRecipes,
       addRecipe: (recipe) => set((state) => {
         // Safe validation check against unhydrated state cache
         const currentRecipes = state && state.recipes ? state.recipes : [];
@@ -52,7 +52,7 @@ export const useRecipeStore = create<RecipesState>()(
     }),
     {
       // Distinct key used to save this data slice inside your shared MMKV database
-      name: 'recipes',
+      name: 'recipes-store',
       storage: createJSONStorage(() => appStorage),
     }
   )
