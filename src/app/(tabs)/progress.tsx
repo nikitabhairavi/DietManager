@@ -271,12 +271,17 @@ export default function ProgressScreen() {
           </View>
         </View>
 
-        {/* Active Calories Burned */}
-        <View style={styles.metricContainer}>
-          <View style={styles.metricHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={styles.metricLabel}>Active Calories Burned</Text>
+        {/* Active Calories Burned (Weight Lifting / Workout focus) */}
+        <View style={styles.activityCard}>
+          <View style={styles.activityHeader}>
+            <View style={styles.activityTitleGroup}>
+              <View style={[styles.activityIconBadge, { backgroundColor: '#FFF4E5' }]}>
+                <Ionicons name="barbell" size={20} color="#FF9500" />
+              </View>
+              <Text style={styles.activityTitle}>Active Burn</Text>
+            </View>
 
+            <View style={styles.actionRow}>
               <TouchableOpacity
                 onPress={() => {
                   setActiveCalInput(activeCaloriesBurned.toString());
@@ -299,25 +304,46 @@ export default function ProgressScreen() {
                 )}
               </TouchableOpacity>
             </View>
-
-            <Text style={styles.metricValue}>
-              {activeCaloriesBurned.toFixed(0)} / {dailyActiveCaloriesTarget} kcal
-            </Text>
           </View>
+
+          {/* Stats Dashboard Grid */}
+          <View style={styles.statsGrid}>
+            <View style={styles.statColumn}>
+              <Text style={styles.statNumber}>{activeCaloriesBurned.toFixed(0)} <Text style={styles.statUnit}>kcal</Text></Text>
+              <Text style={styles.statLabel}>Current Burn</Text>
+            </View>
+
+            <View style={styles.statDivider} />
+
+            <View style={styles.statColumn}>
+              <Text style={styles.statNumber}>{dailyActiveCaloriesTarget} <Text style={styles.statUnit}>kcal</Text></Text>
+              <Text style={styles.statLabel}>Daily Target</Text>
+            </View>
+
+            <View style={[styles.completionBadge, { backgroundColor: '#FFF4E5' }]}>
+              <Text style={[styles.completionText, { color: '#FF9500' }]}>
+                {((activeCaloriesBurned / (dailyActiveCaloriesTarget || 1)) * 100).toFixed(0)}%
+              </Text>
+            </View>
+          </View>
+
+          {/* Progress Bar */}
           <View style={styles.progressBarTrack}>
             <View style={[styles.progressBarFill, { width: `${macroPercentages.activeCalories}%`, backgroundColor: '#FF9500' }]} />
           </View>
-          <Text style={styles.percentageText}>
-            {((activeCaloriesBurned / (dailyActiveCaloriesTarget || 1)) * 100).toFixed(0)}% Complete
-          </Text>
         </View>
 
-        {/* Steps Completed Card */}
-        <View style={styles.metricContainer}>
-          <View style={styles.metricHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={styles.metricLabel}>Steps Completed</Text>
+        {/* Steps Completed Card (Boot / Walking focus) */}
+        <View style={styles.activityCard}>
+          <View style={styles.activityHeader}>
+            <View style={styles.activityTitleGroup}>
+              <View style={[styles.activityIconBadge, { backgroundColor: '#EBF8FF' }]}>
+                <Ionicons name="footsteps-outline" size={20} color="#007AFF" />
+              </View>
+              <Text style={styles.activityTitle}>Steps Tracker</Text>
+            </View>
 
+            <View style={styles.actionRow}>
               <TouchableOpacity
                 onPress={() => {
                   setStepsInput(stepsCompleted.toString());
@@ -340,17 +366,33 @@ export default function ProgressScreen() {
                 )}
               </TouchableOpacity>
             </View>
+          </View>
 
-            <Text style={styles.metricValue}>
-              {stepsCompleted.toLocaleString()} / {dailyStepsTarget.toLocaleString()} steps
-            </Text>
+          {/* Stats Dashboard Grid */}
+          <View style={styles.statsGrid}>
+            <View style={styles.statColumn}>
+              <Text style={styles.statNumber}>{stepsCompleted.toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Steps Taken</Text>
+            </View>
+
+            <View style={styles.statDivider} />
+
+            <View style={styles.statColumn}>
+              <Text style={styles.statNumber}>{dailyStepsTarget.toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Daily Goal</Text>
+            </View>
+
+            <View style={[styles.completionBadge, { backgroundColor: '#EBF8FF' }]}>
+              <Text style={[styles.completionText, { color: '#007AFF' }]}>
+                {((stepsCompleted / (dailyStepsTarget || 1)) * 100).toFixed(0)}%
+              </Text>
+            </View>
           </View>
+
+          {/* Progress Bar */}
           <View style={styles.progressBarTrack}>
-            <View style={[styles.progressBarFill, { width: `${macroPercentages.steps}%`, backgroundColor: '#5AC8FA' }]} />
+            <View style={[styles.progressBarFill, { width: `${macroPercentages.steps}%`, backgroundColor: '#007AFF' }]} />
           </View>
-          <Text style={styles.percentageText}>
-            {((stepsCompleted / (dailyStepsTarget || 1)) * 100).toFixed(0)}% Complete
-          </Text>
         </View>
       </ScrollView>
 
@@ -399,26 +441,26 @@ export default function ProgressScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F2F7' },
-  scrollContent: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   titleWrapper: { flex: 1, marginRight: 8 },
   title: { fontSize: 22, fontWeight: '700', color: '#1C1C1E' },
-  subTitle: { fontSize: 14, color: '#8E8E93', marginTop: 2, fontWeight: '500' },
+  subTitle: { fontSize: 13, color: '#8E8E93', marginTop: 2, fontWeight: '500' },
   adjustGoalsButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E1F0FF', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   adjustGoalsText: { fontSize: 13, fontWeight: '600', color: '#007AFF', marginLeft: 4 },
 
-  // Rings Card Layout
+  // Concentric Rings Section
   ringsCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 20,
     paddingVertical: 20,
     paddingHorizontal: 16,
     marginBottom: 16,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
     elevation: 2,
   },
   ringsContainer: {
@@ -474,14 +516,106 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  metricContainer: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 18, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 },
-  metricHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  metricLabel: { fontSize: 16, fontWeight: '600', color: '#3A3A3C' },
-  metricValue: { fontSize: 14, color: '#666666', fontWeight: '500' },
-  editIconBtn: { marginLeft: 8, padding: 4, backgroundColor: '#F2F2F7', borderRadius: 12 },
-  progressBarTrack: { height: 12, backgroundColor: '#E5E5EA', borderRadius: 6, overflow: 'hidden', marginBottom: 6 },
-  progressBarFill: { height: '100%', borderRadius: 6 },
-  percentageText: { fontSize: 12, color: '#8E8E93', textAlign: 'right', fontWeight: '500' },
+  // Dynamic Activity Dashboard Cards
+  activityCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  activityTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  activityIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activityTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1C1C1E',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editIconBtn: {
+    padding: 6,
+    backgroundColor: '#F2F2F7',
+    borderRadius: 10,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9F9FB',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 14,
+    position: 'relative',
+  },
+  statColumn: {
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1C1C1E',
+  },
+  statUnit: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#8E8E93',
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: '#E5E5EA',
+    marginRight: 16,
+  },
+  completionBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  completionText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  progressBarTrack: {
+    height: 8,
+    backgroundColor: '#E5E5EA',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+
+  // Modals
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { width: '82%', backgroundColor: '#FFFFFF', borderRadius: 18, padding: 20, alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: '700', color: '#1C1C1E' },
