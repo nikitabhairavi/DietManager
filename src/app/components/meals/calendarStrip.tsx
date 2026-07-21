@@ -15,19 +15,6 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
     const flatListRef = useRef<FlatList<Date>>(null);
     const isInitialMount = useRef(true);
 
-    // Generate an array of 14 days surrounding the current selection (7 days back, 6 days forward)
-    const daysArray = useMemo(() => {
-        const dates = [];
-        const baseDate = new Date(); // Anchor around today's current date
-
-        for (let i = -7; i <= 6; i++) {
-            const d = new Date(baseDate);
-            d.setDate(baseDate.getDate() + i);
-            dates.push(d);
-        }
-        return dates;
-    }, []);
-
     const isSameDay = (date1: Date, date2: Date) => {
         if (!date1 || !date2) return false;
         return (
@@ -36,6 +23,20 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
             date1.getFullYear() === date2.getFullYear()
         );
     };
+
+    // Memoize today's date anchor
+    const today = useMemo(() => new Date(), []);
+
+    // Generate an array of 14 days surrounding today's current date
+    const daysArray = useMemo(() => {
+        const dates = [];
+        for (let i = -7; i <= 6; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() + i);
+            dates.push(d);
+        }
+        return dates;
+    }, [today]);
 
     // Find the index of the selected date
     const selectedIndex = useMemo(() => {
@@ -55,7 +56,6 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
             isInitialMount.current = false;
         };
 
-        // Execution guard: layout frames need a tiny window to paint when switching screens
         const timeoutId = setTimeout(() => {
             requestAnimationFrame(scrollToTarget);
         }, 60);
@@ -78,7 +78,6 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
                     index,
                 })}
                 onScrollToIndexFailed={(info) => {
-                    // Fail-safe fallback if the reference index is requested before UI thread calibration
                     flatListRef.current?.scrollToOffset({
                         offset: info.averageItemLength * info.index,
                         animated: false,
@@ -87,25 +86,48 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
                         flatListRef.current?.scrollToIndex({
                             index: info.index,
                             animated: false,
-                            viewPosition: 0.5
+                            viewPosition: 0.5,
                         });
                     }, 80);
                 }}
                 renderItem={({ item }) => {
                     const isSelected = isSameDay(item, selectedDate);
-                    const dayName = item.toLocaleDateString('en-US', { weekday: 'short' });
+                    const isTodayItem = isSameDay(item, today);
+
+                    const dayName = isTodayItem
+                        ? 'TODAY'
+                        : item.toLocaleDateString('en-US', { weekday: 'short' });
                     const dayNumber = item.getDate();
 
                     return (
                         <TouchableOpacity
-                            style={[styles.dayCard, isSelected && styles.selectedDayCard]}
+                            style={[
+                                styles.dayCard,
+                                isTodayItem && styles.todayCard,
+                                isSelected && styles.selectedDayCard,
+                            ]}
                             onPress={() => onDateSelect(item)}
                             activeOpacity={0.7}
                         >
-                            <Text style={[styles.dayNameText, isSelected && styles.selectedTypeText]}>
+                            {/* Blue dot indicator for Today when selected */}
+                            {isTodayItem && <View style={[styles.todayDot, isSelected && styles.selectedTodayDot]} />}
+
+                            <Text
+                                style={[
+                                    styles.dayNameText,
+                                    isTodayItem && styles.todayTypeText,
+                                    isSelected && styles.selectedTypeText,
+                                ]}
+                            >
                                 {dayName}
                             </Text>
-                            <Text style={[styles.dayNumberText, isSelected && styles.selectedTypeText]}>
+                            <Text
+                                style={[
+                                    styles.dayNumberText,
+                                    isTodayItem && styles.todayNumberText,
+                                    isSelected && styles.selectedTypeText,
+                                ]}
+                            >
                                 {dayNumber}
                             </Text>
                         </TouchableOpacity>
@@ -134,20 +156,45 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginHorizontal: ITEM_MARGIN,
+        position: 'relative',
+    },
+    todayCard: {
+        borderWidth: 1.5,
+        borderColor: '#007AFF',
+        backgroundColor: '#F0F6FF', // Light blue tint for Today
     },
     selectedDayCard: {
         backgroundColor: '#007AFF',
+        borderColor: '#007AFF',
+    },
+    todayDot: {
+        position: 'absolute',
+        top: 6,
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: '#007AFF',
+    },
+    selectedTodayDot: {
+        backgroundColor: '#FFFFFF',
     },
     dayNameText: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: '500',
         color: '#8E8E93',
-        marginBottom: 4,
+        marginBottom: 2,
+    },
+    todayTypeText: {
+        color: '#007AFF',
+        fontWeight: '700',
     },
     dayNumberText: {
         fontSize: 18,
         fontWeight: '700',
         color: '#000000',
+    },
+    todayNumberText: {
+        color: '#007AFF',
     },
     selectedTypeText: {
         color: '#FFFFFF',
