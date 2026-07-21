@@ -1,3 +1,4 @@
+import { saveRecipeToFirestore } from '@/app/firestore/firestore';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { appStorage } from '../../storage/dataStorage';
@@ -25,26 +26,36 @@ interface RecipesState {
 
 export const useRecipeStore = create<RecipesState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       recipes: initialRecipes,
-      addRecipe: (recipe) => set((state) => {
-        // Safe validation check against unhydrated state cache
-        const currentRecipes = state && state.recipes ? state.recipes : [];
+      addRecipe: async (recipe) => {
+        // 1. Use the recipe name as the Document ID (trimmed)
+        const docId = recipe.id || recipe.name.trim();
 
-        return {
-          recipes: [
-            ...currentRecipes,
-            {
-              id: recipe.id || Math.random().toString(36).substring(7),
-              name: recipe.name,
-              ingredients: recipe.ingredients,
-              totalCalories: recipe.totalCalories,
-              totalProtein: recipe.totalProtein,
-              totalFiber: recipe.totalFiber,
-            }
-          ]
+        const newRecipe: Recipe = {
+          ...recipe,
+          id: docId,
+          name: recipe.name.trim(),
         };
-      }),
+
+        // 2. Optimistic local state update
+        const currentRecipes = get()?.recipes || [];
+        set({
+          recipes: [...currentRecipes, newRecipe],
+        });
+
+        // 3. Sync to Firestore
+        try {
+          await saveRecipeToFirestore(newRecipe);
+        } catch (error) {
+          console.error('Failed to sync recipe to Firestore:', error);
+          
+          // Revert local state on failure
+          set((state) => ({
+            recipes: state.recipes.filter((item) => item.id !== newRecipe.id),
+          }));
+        }
+      },
 
       deleteRecipe: (id) => set((state) => ({
         recipes: state.recipes.filter((rec) => rec.id !== id)

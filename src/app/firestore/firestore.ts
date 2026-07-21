@@ -31,4 +31,51 @@ export const saveIngredientToFirestore = async (ingredient: Ingredient) => {
     console.error('Failed to save ingredient to Firestore:', error);
     throw error;
   }
+};export interface RecipeIngredient {
+  ingredientId: string;
+  name: string;
+  unitsUsed: number;
+}
+
+export interface Recipe {
+  id?: string;
+  name: string;
+  totalCalories: number;
+  totalProtein: number;
+  totalFiber: number;
+  ingredients: RecipeIngredient[];
+}
+
+export const saveRecipeToFirestore = async (recipe: Recipe) => {
+  try {
+    // 1. Use the trimmed recipe name as the Document ID (e.g., "Chicken legs curry")
+    const docId = recipe.name.trim();
+    const docRef = doc(db, 'recipes', docId);
+
+    // 2. Format exact payload structure
+    const recipeData = {
+      id: docId,
+      name: docId,
+      totalCalories: Number(recipe.totalCalories),
+      totalProtein: Number(recipe.totalProtein),
+      totalFiber: Number(recipe.totalFiber),
+      ingredients: recipe.ingredients.map((item) => ({
+        ingredientId: item.ingredientId,
+        name: item.name,
+        unitsUsed: Number(item.unitsUsed),
+      })),
+      searchTokens: generateSearchTokens(docId),
+      isCustom: true,
+      createdAt: serverTimestamp(),
+    };
+
+    // 3. Write/Upsert to Firestore
+    await setDoc(docRef, recipeData, { merge: true });
+
+    console.log(`Recipe "${docId}" saved to Firestore!`);
+    return docId;
+  } catch (error) {
+    console.error('Failed to save recipe to Firestore:', error);
+    throw error;
+  }
 };
