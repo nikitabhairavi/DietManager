@@ -1,5 +1,5 @@
 import { Recipe, RecipeIngredient } from '@/app/types/RecipeTypes';
-import { initialIngredients } from '@/data/dataStores/ingredientsStore/initialData';
+import { useIngredientsStore } from '@/data/dataStores/ingredientsStore/useIngredientStore';
 import { useRecipeStore } from '@/data/dataStores/recipeStore/useRecipeStore';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -24,7 +24,7 @@ interface RecipeDetailModalProps {
 export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, isVisible, onClose }) => {
     const addRecipe = useRecipeStore((state) => state.addRecipe);
     const deleteRecipe = useRecipeStore((state) => state.deleteRecipe);
-
+    const initialIngredients = useIngredientsStore((state) => state.ingredients);
     const [recipeName, setRecipeName] = useState('');
     const [ingredientsList, setIngredientsList] = useState<RecipeIngredient[]>([]);
     const [ingredientSearch, setIngredientSearch] = useState('');

@@ -1,6 +1,6 @@
 import { db } from '@/app/firestore/config/firebase';
 import { Ingredient } from "@/data/dataStores/ingredientsStore/useIngredientStore";
-import { collection, doc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
 import { Recipe } from '../types/RecipeTypes';
 
 // Helper to generate search tokens for full-text filtering
@@ -105,6 +105,18 @@ export const saveRecipeToFirestore = async (recipe: Recipe) => {
     console.log(`Recipe "${docId}" saved to Firestore!`);
   } catch (error) {
     console.error('Failed to save recipe to Firestore:', error);
+    throw error;
+  }
+};
+
+
+export const deleteRecipeFromFirestore = async (docId: string) => {
+  try {
+    const docRef = doc(db, 'recipes', docId);
+    await deleteDoc(docRef);
+    console.log(`Recipe "${docId}" deleted from Firestore`);
+  } catch (error) {
+    console.error('Failed to delete recipe from Firestore:', error);
     throw error;
   }
 };

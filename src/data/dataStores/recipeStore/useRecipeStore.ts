@@ -1,9 +1,12 @@
-import { fetchRecipesFromFirestore, saveRecipeToFirestore } from '@/app/firestore/firestore';
+import {
+  deleteRecipeFromFirestore,
+  fetchRecipesFromFirestore,
+  saveRecipeToFirestore,
+} from '@/app/firestore/firestore';
 import { Recipe } from '@/app/types/RecipeTypes';
 import { appStorage } from '@/data/storage/dataStorage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-
 
 interface RecipesState {
   recipes: Recipe[];
@@ -12,7 +15,8 @@ interface RecipesState {
   loadInitialRecipes: () => Promise<void>;
   fetchRecipes: () => Promise<void>;
   addRecipe: (recipe: Recipe) => Promise<void>;
-  deleteRecipe: (id: string) => void;
+  updateRecipe: (id: string, updatedRecipe: Partial<Recipe>) => Promise<void>;
+  deleteRecipe: (id: string) => Promise<void>;
 }
 
 export const useRecipeStore = create<RecipesState>()(
@@ -71,9 +75,56 @@ export const useRecipeStore = create<RecipesState>()(
         }
       },
 
-      deleteRecipe: (id) => set((state) => ({
-        recipes: state.recipes.filter((rec) => rec.id !== id),
-      })),
+      updateRecipe: async (id, updatedRecipe) => {
+        const previousRecipes = get()?.recipes || [];
+        const existingRecipe = previousRecipes.find((rec) => rec.id === id);
+
+        if (!existingRecipe) return;
+
+        // Merge existing recipe with partial updates
+        const mergedRecipe: Recipe = {
+          ...existingRecipe,
+          ...updatedRecipe,
+          id, // Guarantee ID remains intact
+        };
+
+        // 1. Optimistic update
+        set({
+          recipes: previousRecipes.map((rec) =>
+            rec.id === id ? mergedRecipe : rec
+          ),
+        });
+
+        // 2. Sync to Firestore
+        try {
+          await saveRecipeToFirestore(mergedRecipe);
+        } catch (error) {
+          console.error('Failed to update recipe in Firestore:', error);
+          // Rollback on write failure
+          set({ recipes: previousRecipes });
+        }
+      },
+
+      deleteRecipe: async (id) => {
+        const previousRecipes = get()?.recipes || [];
+        const targetRecipe = previousRecipes.find((rec) => rec.id === id);
+
+        if (!targetRecipe) return;
+
+        // 1. Optimistic delete
+        set({
+          recipes: previousRecipes.filter((rec) => rec.id !== id),
+        });
+
+        // 2. Sync deletion to Firestore
+        try {
+          await deleteRecipeFromFirestore(id);
+        } catch (error) {
+          console.error('Failed to delete recipe from Firestore:', error);
+          // Rollback on delete failure
+          set({ recipes: previousRecipes });
+        }
+      },
     }),
     {
       name: 'recipes-store-1',
