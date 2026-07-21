@@ -1,20 +1,40 @@
-
 import { useMealsStore } from '@/data/dataStores/meals/useMealsStore';
 import { useGoalsStore } from '@/data/dataStores/useGoalStore';
 import { SetGoalsModal } from '@/modals/SetGoalsModal';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { CalendarStrip } from '../components/meals/calendarStrip';
 
 export default function ProgressScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isGoalsModalOpen, setIsGoalsModalOpen] = useState(false);
+  const [isActiveCalModalOpen, setIsActiveCalModalOpen] = useState(false);
+  const [activeCalInput, setActiveCalInput] = useState('');
+  const [isSyncingWatch, setIsSyncingWatch] = useState(false);
 
   const mealsByDay = useMealsStore((state) => state.mealsByDay);
 
-  // Destructure targets directly from your existing useGoalsStore implementation
-  const { dailyCaloriesTarget, dailyProteinTarget, dailyFiberTarget } = useGoalsStore();
+  // Destructure targets, active calorie state, and Apple Watch sync from useGoalsStore
+  const {
+    dailyCaloriesTarget,
+    dailyProteinTarget,
+    dailyFiberTarget,
+    dailyActiveCaloriesTarget = 500,
+    activeCaloriesByDay = {},
+    setActiveCaloriesForDate,
+    syncAppleWatchCalories,
+  } = useGoalsStore();
 
   const formatDateString = (date: Date) => {
     const year = date.getFullYear();
@@ -24,6 +44,9 @@ export default function ProgressScreen() {
   };
 
   const targetDateString = useMemo(() => formatDateString(selectedDate), [selectedDate]);
+
+  // Read logged active calories for selected date
+  const activeCaloriesBurned = activeCaloriesByDay[targetDateString] || 0;
 
   const dailyTotals = useMemo(() => {
     const dayMeals = mealsByDay[targetDateString] || [];
@@ -38,18 +61,35 @@ export default function ProgressScreen() {
     );
   }, [mealsByDay, targetDateString]);
 
-  // Compute math fulfillment bar ranges tied to your specific store keys
+  // Compute percentage progress ranges
   const macroPercentages = useMemo(() => {
     return {
-      calories: Math.min((dailyTotals.calories / dailyCaloriesTarget) * 100, 100),
-      protein: Math.min((dailyTotals.protein / dailyProteinTarget) * 100, 100),
-      fiber: Math.min((dailyTotals.fiber / dailyFiberTarget) * 100, 100),
+      calories: Math.min((dailyTotals.calories / (dailyCaloriesTarget || 1)) * 100, 100),
+      protein: Math.min((dailyTotals.protein / (dailyProteinTarget || 1)) * 100, 100),
+      fiber: Math.min((dailyTotals.fiber / (dailyFiberTarget || 1)) * 100, 100),
+      activeCalories: Math.min((activeCaloriesBurned / (dailyActiveCaloriesTarget || 1)) * 100, 100),
     };
-  }, [dailyTotals, dailyCaloriesTarget, dailyProteinTarget, dailyFiberTarget]);
+  }, [dailyTotals, dailyCaloriesTarget, dailyProteinTarget, dailyFiberTarget, activeCaloriesBurned, dailyActiveCaloriesTarget]);
 
   const displayTitle = useMemo(() => {
     return selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }, [selectedDate]);
+
+  const handleSaveActiveCalories = () => {
+    const parsedValue = parseFloat(activeCalInput);
+    if (!isNaN(parsedValue) && setActiveCaloriesForDate) {
+      setActiveCaloriesForDate(targetDateString, parsedValue);
+    }
+    setIsActiveCalModalOpen(false);
+    setActiveCalInput('');
+  };
+
+  const handleAppleWatchSync = async () => {
+    if (!syncAppleWatchCalories) return;
+    setIsSyncingWatch(true);
+    await syncAppleWatchCalories(selectedDate, targetDateString);
+    setIsSyncingWatch(false);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -72,10 +112,10 @@ export default function ProgressScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Calories Progress Card */}
+        {/* Calories Consumed Progress Card */}
         <View style={styles.metricContainer}>
           <View style={styles.metricHeader}>
-            <Text style={styles.metricLabel}>Calories</Text>
+            <Text style={styles.metricLabel}>Calories Consumed</Text>
             <Text style={styles.metricValue}>
               {dailyTotals.calories.toFixed(0)} / {dailyCaloriesTarget} kcal
             </Text>
@@ -84,14 +124,14 @@ export default function ProgressScreen() {
             <View style={[styles.progressBarFill, { width: `${macroPercentages.calories}%`, backgroundColor: '#007AFF' }]} />
           </View>
           <Text style={styles.percentageText}>
-            {((dailyTotals.calories / dailyCaloriesTarget) * 100).toFixed(0)}% Complete
+            {((dailyTotals.calories / (dailyCaloriesTarget || 1)) * 100).toFixed(0)}% Complete
           </Text>
         </View>
 
-        {/* Protein Progress Card */}
+        {/* Protein Consumed Progress Card */}
         <View style={styles.metricContainer}>
           <View style={styles.metricHeader}>
-            <Text style={styles.metricLabel}>Protein</Text>
+            <Text style={styles.metricLabel}>Protein Consumed</Text>
             <Text style={styles.metricValue}>
               {dailyTotals.protein.toFixed(1)}g / {dailyProteinTarget}g
             </Text>
@@ -100,14 +140,14 @@ export default function ProgressScreen() {
             <View style={[styles.progressBarFill, { width: `${macroPercentages.protein}%`, backgroundColor: '#34C759' }]} />
           </View>
           <Text style={styles.percentageText}>
-            {((dailyTotals.protein / dailyProteinTarget) * 100).toFixed(0)}% Complete
+            {((dailyTotals.protein / (dailyProteinTarget || 1)) * 100).toFixed(0)}% Complete
           </Text>
         </View>
 
-        {/* Fiber Progress Card */}
+        {/* Fiber Consumed Progress Card */}
         <View style={styles.metricContainer}>
           <View style={styles.metricHeader}>
-            <Text style={styles.metricLabel}>Fiber</Text>
+            <Text style={styles.metricLabel}>Fiber Consumed</Text>
             <Text style={styles.metricValue}>
               {dailyTotals.fiber.toFixed(1)}g / {dailyFiberTarget}g
             </Text>
@@ -116,13 +156,95 @@ export default function ProgressScreen() {
             <View style={[styles.progressBarFill, { width: `${macroPercentages.fiber}%`, backgroundColor: '#AF52DE' }]} />
           </View>
           <Text style={styles.percentageText}>
-            {((dailyTotals.fiber / dailyFiberTarget) * 100).toFixed(0)}% Complete
+            {((dailyTotals.fiber / (dailyFiberTarget || 1)) * 100).toFixed(0)}% Complete
+          </Text>
+        </View>
+
+        {/* Active Calories Burned Progress Card */}
+        <View style={styles.metricContainer}>
+          <View style={styles.metricHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={styles.metricLabel}>Active Calories Burned</Text>
+
+              {/* Manual Entry Button */}
+              <TouchableOpacity
+                onPress={() => {
+                  setActiveCalInput(activeCaloriesBurned.toString());
+                  setIsActiveCalModalOpen(true);
+                }}
+                style={styles.editIconBtn}
+              >
+                <Ionicons name="pencil-sharp" size={14} color="#007AFF" />
+              </TouchableOpacity>
+
+              {/* Apple Watch Sync Button */}
+              <TouchableOpacity
+                onPress={handleAppleWatchSync}
+                style={[styles.editIconBtn, { marginLeft: 6 }]}
+                disabled={isSyncingWatch}
+              >
+                {isSyncingWatch ? (
+                  <ActivityIndicator size="small" color="#007AFF" />
+                ) : (
+                  <Ionicons name="watch-outline" size={15} color="#007AFF" />
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.metricValue}>
+              {activeCaloriesBurned.toFixed(0)} / {dailyActiveCaloriesTarget} kcal
+            </Text>
+          </View>
+          <View style={styles.progressBarTrack}>
+            <View style={[styles.progressBarFill, { width: `${macroPercentages.activeCalories}%`, backgroundColor: '#FF9500' }]} />
+          </View>
+          <Text style={styles.percentageText}>
+            {((activeCaloriesBurned / (dailyActiveCaloriesTarget || 1)) * 100).toFixed(0)}% Complete
           </Text>
         </View>
       </ScrollView>
 
-      {/* Target config overlay portal */}
+      {/* Target configuration overlay portal */}
       <SetGoalsModal isVisible={isGoalsModalOpen} onClose={() => setIsGoalsModalOpen(false)} />
+
+      {/* Active Calories Burned Setter Modal */}
+      <Modal
+        visible={isActiveCalModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsActiveCalModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Set Active Burned Calories</Text>
+            <Text style={styles.modalSubtitle}>Log burned workout calories for {targetDateString}</Text>
+
+            <TextInput
+              style={styles.modalInput}
+              keyboardType="numeric"
+              placeholder="e.g. 450"
+              value={activeCalInput}
+              onChangeText={setActiveCalInput}
+              autoFocus
+            />
+
+            <View style={styles.modalActionRow}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setIsActiveCalModalOpen(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.saveButton]}
+                onPress={handleSaveActiveCalories}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -140,7 +262,21 @@ const styles = StyleSheet.create({
   metricHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   metricLabel: { fontSize: 16, fontWeight: '600', color: '#3A3A3C' },
   metricValue: { fontSize: 14, color: '#666666', fontWeight: '500' },
+  editIconBtn: { marginLeft: 8, padding: 4, backgroundColor: '#F2F2F7', borderRadius: 12 },
   progressBarTrack: { height: 12, backgroundColor: '#E5E5EA', borderRadius: 6, overflow: 'hidden', marginBottom: 6 },
   progressBarFill: { height: '100%', borderRadius: 6 },
   percentageText: { fontSize: 12, color: '#8E8E93', textAlign: 'right', fontWeight: '500' },
+
+  // Modal Styles
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { width: '82%', backgroundColor: '#FFFFFF', borderRadius: 18, padding: 20, alignItems: 'center' },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: '#1C1C1E' },
+  modalSubtitle: { fontSize: 12, color: '#8E8E93', marginTop: 4, marginBottom: 16 },
+  modalInput: { width: '100%', backgroundColor: '#F2F2F7', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 16, color: '#1C1C1E', marginBottom: 20, textAlign: 'center' },
+  modalActionRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
+  modalButton: { flex: 0.47, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  cancelButton: { backgroundColor: '#E5E5EA' },
+  cancelButtonText: { color: '#1C1C1E', fontWeight: '600' },
+  saveButton: { backgroundColor: '#007AFF' },
+  saveButtonText: { color: '#FFFFFF', fontWeight: '600' },
 });
