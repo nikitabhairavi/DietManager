@@ -178,6 +178,44 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
                             </View>
                         </View>
 
+                        {/* Catalog Selection Interceptor Search (NOW BEFORE FORMULATION) */}
+                        <View style={styles.searchBlock}>
+                            <Text style={styles.sectionLabel}>Search & Inject Ingredients</Text>
+                            <TextInput
+                                style={styles.textInput}
+                                value={ingredientSearch}
+                                onChangeText={(text) => {
+                                    setIngredientSearch(text);
+                                    setShowDropdown(text.trim().length > 0);
+                                }}
+                                placeholder="Type catalog elements..."
+                                placeholderTextColor="#8E8E93"
+                            />
+
+                            {showDropdown && filteredSearchIngredients.length > 0 && (
+                                <View style={styles.searchDropdownContainer}>
+                                    <FlatList
+                                        data={filteredSearchIngredients}
+                                        keyExtractor={(item) => item.id}
+                                        style={{ maxHeight: 150 }}
+                                        nestedScrollEnabled
+                                        keyboardShouldPersistTaps="handled"
+                                        renderItem={({ item }) => (
+                                            <TouchableOpacity
+                                                style={styles.dropdownOptionRow}
+                                                onPress={() => handleAddIngredient(item)}
+                                            >
+                                                <Text style={styles.dropdownOptionText}>{item.name}</Text>
+                                                <Text style={styles.dropdownOptionSubText}>
+                                                    {item.quantityPerUnit}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        )}
+                                    />
+                                </View>
+                            )}
+                        </View>
+
                         {/* Composition Breakdown Matrix */}
                         <Text style={styles.sectionLabel}>Active Ingredients Formulation</Text>
                         <View style={styles.listContainer}>
@@ -220,44 +258,6 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
                             />
                         </View>
 
-                        {/* Catalog Selection Interceptor Search */}
-                        <View style={styles.searchBlock}>
-                            <Text style={styles.sectionLabel}>Search & Inject Ingredients</Text>
-                            <TextInput
-                                style={styles.textInput}
-                                value={ingredientSearch}
-                                onChangeText={(text) => {
-                                    setIngredientSearch(text);
-                                    setShowDropdown(text.trim().length > 0);
-                                }}
-                                placeholder="Type catalog elements..."
-                                placeholderTextColor="#8E8E93"
-                            />
-
-                            {showDropdown && filteredSearchIngredients.length > 0 && (
-                                <View style={styles.searchDropdownContainer}>
-                                    <FlatList
-                                        data={filteredSearchIngredients}
-                                        keyExtractor={(item) => item.id}
-                                        style={{ maxHeight: 150 }}
-                                        nestedScrollEnabled
-                                        keyboardShouldPersistTaps="handled"
-                                        renderItem={({ item }) => (
-                                            <TouchableOpacity
-                                                style={styles.dropdownOptionRow}
-                                                onPress={() => handleAddIngredient(item)}
-                                            >
-                                                <Text style={styles.dropdownOptionText}>{item.name}</Text>
-                                                <Text style={styles.dropdownOptionSubText}>
-                                                    {item.quantityPerUnit}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        )}
-                                    />
-                                </View>
-                            )}
-                        </View>
-
                         {/* Action Submission Grid Footer */}
                         <TouchableOpacity
                             style={styles.commitSaveButton}
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     },
     keyboardContainer: {
         width: '100%',
-        height: '92%', // Fills 92% of screen height
+        height: '92%',
     },
     modalContainer: {
         flex: 1,
@@ -343,12 +343,50 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginTop: 2,
     },
+    searchBlock: {
+        position: 'relative',
+        zIndex: 20,
+        marginBottom: 8,
+    },
+    searchDropdownContainer: {
+        position: 'absolute',
+        top: 68, // Opens downward below the search input field
+        left: 0,
+        right: 0,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E5E5EA',
+        borderRadius: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 4,
+        zIndex: 30,
+    },
+    dropdownOptionRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F2F2F7',
+    },
+    dropdownOptionText: {
+        fontSize: 15,
+        color: '#000000',
+        fontWeight: '500',
+    },
+    dropdownOptionSubText: {
+        fontSize: 13,
+        color: '#8E8E93',
+    },
     listContainer: {
-        flex: 1, // Allows the ingredient list section to consume all available vertical space
+        flex: 1,
         marginVertical: 4,
     },
     ingredientsListMax: {
-        flex: 1, // Replaced hardcoded height (180) with dynamic flex growth
+        flex: 1,
     },
     ingredientRowCard: {
         flexDirection: 'row',
@@ -401,44 +439,6 @@ const styles = StyleSheet.create({
         color: '#8E8E93',
         fontSize: 14,
         marginVertical: 20,
-    },
-    searchBlock: {
-        position: 'relative',
-        zIndex: 20,
-        marginBottom: 10,
-    },
-    searchDropdownContainer: {
-        position: 'absolute',
-        bottom: 50, // Display search results pop-up above the search box to keep list visible
-        left: 0,
-        right: 0,
-        backgroundColor: '#FFFFFF',
-        borderWidth: 1,
-        borderColor: '#E5E5EA',
-        borderRadius: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-        zIndex: 30,
-    },
-    dropdownOptionRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F2F2F7',
-    },
-    dropdownOptionText: {
-        fontSize: 15,
-        color: '#000000',
-        fontWeight: '500',
-    },
-    dropdownOptionSubText: {
-        fontSize: 13,
-        color: '#8E8E93',
     },
     commitSaveButton: {
         backgroundColor: '#007AFF',
