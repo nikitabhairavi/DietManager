@@ -1,21 +1,39 @@
+import { Recipe } from '@/app/types/RecipeTypes';
+import { useRecipeStore } from '@/data/dataStores/recipeStore/useRecipeStore';
 import { RecipeDetailModal } from '@/modals/RecipeDetailsModal';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Recipe, useRecipeStore } from '../../../data/dataStores/recipeStore/useRecipeStore';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface KitchenRecipesProps {
   searchQuery: string;
 }
 
 export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) => {
+  // 1. ALL HOOKS MUST BE DECLARED AT THE TOP LEVEL FIRST
   const recipes = useRecipeStore((state) => state.recipes);
+  const isInitialLoading = useRecipeStore((state) => state.isInitialLoading);
+  const loadInitialRecipes = useRecipeStore((state) => state.loadInitialRecipes);
   const removeRecipe = useRecipeStore((state) => state.deleteRecipe);
 
   // States to handle visibility and the context of the active model sheet
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
+  useEffect(() => {
+    loadInitialRecipes();
+  }, [loadInitialRecipes]);
+
+  // 2. EARLY RETURNS / CONDITIONAL RENDERING GO AFTER ALL HOOKS
+  if (isInitialLoading) {
+    return (
+      <View style={[styles.wrapper, styles.centerContent]}>
+        <ActivityIndicator size="large" color="#000000" />
+      </View>
+    );
+  }
+
+  // 3. EVENT HANDLERS & COMPUTED VALUES
   const filteredRecipes = recipes.filter((rec) =>
     rec.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -30,6 +48,7 @@ export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) =
     setSelectedRecipe(null);
   };
 
+  // 4. MAIN JSX RENDER
   return (
     <View style={styles.wrapper}>
       <FlatList
@@ -83,6 +102,10 @@ export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) =
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   listPadding: {
     paddingHorizontal: 20,

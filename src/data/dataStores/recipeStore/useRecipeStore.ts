@@ -1,69 +1,82 @@
-import { saveRecipeToFirestore } from '@/app/firestore/firestore';
+import { fetchRecipesFromFirestore, saveRecipeToFirestore } from '@/app/firestore/firestore';
+import { Recipe } from '@/app/types/RecipeTypes';
+import { appStorage } from '@/data/storage/dataStorage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { appStorage } from '../../storage/dataStorage';
-import { initialRecipes } from './initialData';
-export interface RecipeIngredient {
-  ingredientId: string;
-  name: string;      // Snapshotted at the time of addition for quick presentation
-  unitsUsed: number; // Decimal or integer multiplier of the ingredient's base unit
-}
 
-export interface Recipe {
-  id: string;
-  name: string;
-  ingredients: RecipeIngredient[];
-  totalCalories: number;
-  totalProtein: number;
-  totalFiber: number;
-}
 
 interface RecipesState {
   recipes: Recipe[];
-  addRecipe: (recipe: Recipe) => void;
+  isInitialLoading: boolean;
+  isRefreshing: boolean;
+  loadInitialRecipes: () => Promise<void>;
+  fetchRecipes: () => Promise<void>;
+  addRecipe: (recipe: Recipe) => Promise<void>;
   deleteRecipe: (id: string) => void;
 }
 
 export const useRecipeStore = create<RecipesState>()(
   persist(
     (set, get) => ({
-      recipes: initialRecipes,
+      recipes: [],
+      isInitialLoading: true,
+      isRefreshing: false,
+
+      loadInitialRecipes: async () => {
+        set({ isInitialLoading: true });
+        try {
+          const remoteRecipes = await fetchRecipesFromFirestore();
+          set({ recipes: remoteRecipes });
+        } catch (error) {
+          console.error('Failed to load initial recipes from Firestore:', error);
+        } finally {
+          set({ isInitialLoading: false });
+        }
+      },
+
+      fetchRecipes: async () => {
+        set({ isRefreshing: true });
+        try {
+          const remoteRecipes = await fetchRecipesFromFirestore();
+          set({ recipes: remoteRecipes });
+        } catch (error) {
+          console.error('Error refreshing recipes:', error);
+        } finally {
+          set({ isRefreshing: false });
+        }
+      },
+
       addRecipe: async (recipe) => {
-        // 1. Use the recipe name as the Document ID (trimmed)
-        const docId = recipe.id || recipe.name.trim();
+        const docId = recipe.name.trim();
 
         const newRecipe: Recipe = {
-          ...recipe,
           id: docId,
-          name: recipe.name.trim(),
+          name: docId,
+          totalCalories: Number(recipe.totalCalories),
+          totalProtein: Number(recipe.totalProtein),
+          totalFiber: Number(recipe.totalFiber),
+          ingredients: recipe.ingredients,
         };
 
-        // 2. Optimistic local state update
         const currentRecipes = get()?.recipes || [];
-        set({
-          recipes: [...currentRecipes, newRecipe],
-        });
+        set({ recipes: [...currentRecipes, newRecipe] });
 
-        // 3. Sync to Firestore
         try {
           await saveRecipeToFirestore(newRecipe);
         } catch (error) {
           console.error('Failed to sync recipe to Firestore:', error);
-          
-          // Revert local state on failure
           set((state) => ({
-            recipes: state.recipes.filter((item) => item.id !== newRecipe.id),
+            recipes: state.recipes.filter((item) => item.id !== docId),
           }));
         }
       },
 
       deleteRecipe: (id) => set((state) => ({
-        recipes: state.recipes.filter((rec) => rec.id !== id)
+        recipes: state.recipes.filter((rec) => rec.id !== id),
       })),
     }),
     {
-      // Distinct key used to save this data slice inside your shared MMKV database
-      name: 'recipes-store',
+      name: 'recipes-store-1',
       storage: createJSONStorage(() => appStorage),
     }
   )
