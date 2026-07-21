@@ -1,7 +1,6 @@
 import { useRecipeStore } from '@/data/dataStores/recipeStore/useRecipeStore';
 import { RecipeDetailModal } from '@/modals/RecipeDetailModal';
 import { Recipe } from '@/types/RecipeTypes';
-import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -9,9 +8,9 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
+import { RecipeCard } from './RecipeCard';
 
 interface KitchenRecipesProps {
   searchQuery: string;
@@ -69,31 +68,11 @@ export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) =
           <RefreshControl refreshing={isRefreshing} onRefresh={fetchRecipes} />
         }
         renderItem={({ item }) => (
-          /* Entire item card is now an interactive trigger */
-          <TouchableOpacity
-            style={styles.itemCard}
-            activeOpacity={0.7}
-            onPress={() => handleOpenDetails(item)}
-          >
-            <View style={styles.cardContent}>
-              <Text style={styles.itemName}>{item.name}</Text>
-              <Text style={styles.itemDetails}>
-                Totals: {item.totalCalories} kcal | P: {item.totalProtein}g | F: {item.totalFiber}g
-              </Text>
-            </View>
-
-            {/* Trash button stops bubble propagation to ensure deletion doesn't fire modal open */}
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                removeRecipe(item.id);
-              }}
-              activeOpacity={0.6}
-            >
-              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-            </TouchableOpacity>
-          </TouchableOpacity>
+          <RecipeCard
+            item={item}
+            onPress={handleOpenDetails}
+            onDelete={removeRecipe}
+          />
         )}
         ListEmptyComponent={
           <Text style={styles.emptyText}>
@@ -121,38 +100,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listPadding: {
-    paddingHorizontal: 20,
-    paddingBottom: 90,
-  },
-  itemCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  cardContent: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  itemDetails: {
-    fontSize: 14,
-    color: '#666666',
-  },
-  deleteButton: {
-    padding: 8,
-    marginLeft: 10,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 100, // Extra clearance for floating elements
   },
   emptyText: {
     textAlign: 'center',
