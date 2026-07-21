@@ -33,6 +33,32 @@ export const saveIngredientToFirestore = async (ingredient: Ingredient) => {
     throw error;
   }
 };
+
+export const fetchIngredientsFromFirestore = async (): Promise<Ingredient[]> => {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'ingredients'));
+    const ingredients: Ingredient[] = [];
+
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      ingredients.push({
+        id: docSnap.id,
+        name: data.name ?? docSnap.id,
+        quantityPerUnit: String(data.quantityPerUnit ?? ''),
+        caloriesPerUnit: Number(data.caloriesPerUnit ?? 0),
+        proteinPerUnit: Number(data.proteinPerUnit ?? 0),
+        fiberPerUnit: Number(data.fiberPerUnit ?? 0),
+        imageUri: data.imageUri ?? undefined,
+      });
+    });
+
+    return ingredients;
+  } catch (error) {
+    console.error('Failed to fetch ingredients from Firestore:', error);
+    throw error;
+  }
+};
+
 export const fetchRecipesFromFirestore = async (): Promise<Recipe[]> => {
   try {
     const querySnapshot = await getDocs(collection(db, 'recipes'));

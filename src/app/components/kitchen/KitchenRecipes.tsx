@@ -3,20 +3,30 @@ import { useRecipeStore } from '@/data/dataStores/recipeStore/useRecipeStore';
 import { RecipeDetailModal } from '@/modals/RecipeDetailsModal';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 interface KitchenRecipesProps {
   searchQuery: string;
 }
 
 export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) => {
-  // 1. ALL HOOKS MUST BE DECLARED AT THE TOP LEVEL FIRST
+  // 1. ALL HOOKS DECLARED AT TOP LEVEL
   const recipes = useRecipeStore((state) => state.recipes);
   const isInitialLoading = useRecipeStore((state) => state.isInitialLoading);
+  const isRefreshing = useRecipeStore((state) => state.isRefreshing);
   const loadInitialRecipes = useRecipeStore((state) => state.loadInitialRecipes);
+  const fetchRecipes = useRecipeStore((state) => state.fetchRecipes);
   const removeRecipe = useRecipeStore((state) => state.deleteRecipe);
 
-  // States to handle visibility and the context of the active model sheet
+  // States to handle visibility and the context of the active modal sheet
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
@@ -48,13 +58,16 @@ export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) =
     setSelectedRecipe(null);
   };
 
-  // 4. MAIN JSX RENDER
+  // 4. MAIN JSX RENDER WITH REFRESH CONTROL
   return (
     <View style={styles.wrapper}>
       <FlatList
         data={filteredRecipes}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listPadding}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={fetchRecipes} />
+        }
         renderItem={({ item }) => (
           /* Entire item card is now an interactive trigger */
           <TouchableOpacity
