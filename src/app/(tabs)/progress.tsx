@@ -12,8 +12,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { CalendarStrip } from '../../components/meals/calendarStrip';
 
 export default function ProgressScreen() {
@@ -108,6 +109,25 @@ export default function ProgressScreen() {
     setIsSyncingWatch(false);
   };
 
+  // Concentric Circle Dimensions
+  const centerPos = 110;
+  const strokeWidth = 12;
+
+  // Ring Radii
+  const calRadius = 90;
+  const proteinRadius = 72;
+  const fiberRadius = 54;
+
+  // Circumferences
+  const calCircumference = 2 * Math.PI * calRadius;
+  const proteinCircumference = 2 * Math.PI * proteinRadius;
+  const fiberCircumference = 2 * Math.PI * fiberRadius;
+
+  // Offsets
+  const calOffset = calCircumference - (macroPercentages.calories / 100) * calCircumference;
+  const proteinOffset = proteinCircumference - (macroPercentages.protein / 100) * proteinCircumference;
+  const fiberOffset = fiberCircumference - (macroPercentages.fiber / 100) * fiberCircumference;
+
   return (
     <SafeAreaView style={styles.container}>
       <CalendarStrip selectedDate={selectedDate} onDateSelect={(date) => setSelectedDate(date)} />
@@ -128,52 +148,127 @@ export default function ProgressScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Calories Consumed */}
-        <View style={styles.metricContainer}>
-          <View style={styles.metricHeader}>
-            <Text style={styles.metricLabel}>Calories Consumed</Text>
-            <Text style={styles.metricValue}>
-              {dailyTotals.calories.toFixed(0)} / {dailyCaloriesTarget} kcal
-            </Text>
-          </View>
-          <View style={styles.progressBarTrack}>
-            <View style={[styles.progressBarFill, { width: `${macroPercentages.calories}%`, backgroundColor: '#007AFF' }]} />
-          </View>
-          <Text style={styles.percentageText}>
-            {((dailyTotals.calories / (dailyCaloriesTarget || 1)) * 100).toFixed(0)}% Complete
-          </Text>
-        </View>
+        {/* Concentric Macro Rings Card */}
+        <View style={styles.ringsCard}>
+          <View style={styles.ringsContainer}>
+            <Svg width={220} height={220}>
+              {/* Outer Ring: Calories Background */}
+              <Circle
+                cx={centerPos}
+                cy={centerPos}
+                r={calRadius}
+                stroke="#E5E5EA"
+                strokeWidth={strokeWidth}
+                fill="none"
+              />
+              {/* Outer Ring: Calories Progress */}
+              <Circle
+                cx={centerPos}
+                cy={centerPos}
+                r={calRadius}
+                stroke="#FF9500"
+                strokeWidth={strokeWidth}
+                fill="none"
+                strokeDasharray={calCircumference}
+                strokeDashoffset={calOffset}
+                strokeLinecap="round"
+                rotation="-90"
+                origin={`${centerPos}, ${centerPos}`}
+              />
 
-        {/* Protein Consumed */}
-        <View style={styles.metricContainer}>
-          <View style={styles.metricHeader}>
-            <Text style={styles.metricLabel}>Protein Consumed</Text>
-            <Text style={styles.metricValue}>
-              {dailyTotals.protein.toFixed(1)}g / {dailyProteinTarget}g
-            </Text>
-          </View>
-          <View style={styles.progressBarTrack}>
-            <View style={[styles.progressBarFill, { width: `${macroPercentages.protein}%`, backgroundColor: '#34C759' }]} />
-          </View>
-          <Text style={styles.percentageText}>
-            {((dailyTotals.protein / (dailyProteinTarget || 1)) * 100).toFixed(0)}% Complete
-          </Text>
-        </View>
+              {/* Middle Ring: Protein Background */}
+              <Circle
+                cx={centerPos}
+                cy={centerPos}
+                r={proteinRadius}
+                stroke="#E5E5EA"
+                strokeWidth={strokeWidth}
+                fill="none"
+              />
+              {/* Middle Ring: Protein Progress */}
+              <Circle
+                cx={centerPos}
+                cy={centerPos}
+                r={proteinRadius}
+                stroke="#007AFF"
+                strokeWidth={strokeWidth}
+                fill="none"
+                strokeDasharray={proteinCircumference}
+                strokeDashoffset={proteinOffset}
+                strokeLinecap="round"
+                rotation="-90"
+                origin={`${centerPos}, ${centerPos}`}
+              />
 
-        {/* Fiber Consumed */}
-        <View style={styles.metricContainer}>
-          <View style={styles.metricHeader}>
-            <Text style={styles.metricLabel}>Fiber Consumed</Text>
-            <Text style={styles.metricValue}>
-              {dailyTotals.fiber.toFixed(1)}g / {dailyFiberTarget}g
-            </Text>
+              {/* Inner Ring: Fiber Background */}
+              <Circle
+                cx={centerPos}
+                cy={centerPos}
+                r={fiberRadius}
+                stroke="#E5E5EA"
+                strokeWidth={strokeWidth}
+                fill="none"
+              />
+              {/* Inner Ring: Fiber Progress */}
+              <Circle
+                cx={centerPos}
+                cy={centerPos}
+                r={fiberRadius}
+                stroke="#34C759"
+                strokeWidth={strokeWidth}
+                fill="none"
+                strokeDasharray={fiberCircumference}
+                strokeDashoffset={fiberOffset}
+                strokeLinecap="round"
+                rotation="-90"
+                origin={`${centerPos}, ${centerPos}`}
+              />
+            </Svg>
+
+            {/* Center Summary Label */}
+            <View style={styles.centerTextOverlay}>
+              <Text style={styles.centerCalValue}>
+                {dailyTotals.calories.toFixed(0)}
+              </Text>
+              <Text style={styles.centerCalTarget}>/ {dailyCaloriesTarget} kcal</Text>
+            </View>
           </View>
-          <View style={styles.progressBarTrack}>
-            <View style={[styles.progressBarFill, { width: `${macroPercentages.fiber}%`, backgroundColor: '#AF52DE' }]} />
+
+          {/* Key Legend Below Rings */}
+          <View style={styles.legendRow}>
+            {/* Calories Legend */}
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#FF9500' }]} />
+              <View>
+                <Text style={styles.legendTitle}>Calories</Text>
+                <Text style={styles.legendSub}>
+                  {dailyTotals.calories.toFixed(0)} / {dailyCaloriesTarget}
+                </Text>
+              </View>
+            </View>
+
+            {/* Protein Legend */}
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#007AFF' }]} />
+              <View>
+                <Text style={styles.legendTitle}>Protein</Text>
+                <Text style={styles.legendSub}>
+                  {dailyTotals.protein.toFixed(1)} / {dailyProteinTarget}g
+                </Text>
+              </View>
+            </View>
+
+            {/* Fiber Legend */}
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#34C759' }]} />
+              <View>
+                <Text style={styles.legendTitle}>Fiber</Text>
+                <Text style={styles.legendSub}>
+                  {dailyTotals.fiber.toFixed(1)} / {dailyFiberTarget}g
+                </Text>
+              </View>
+            </View>
           </View>
-          <Text style={styles.percentageText}>
-            {((dailyTotals.fiber / (dailyFiberTarget || 1)) * 100).toFixed(0)}% Complete
-          </Text>
         </View>
 
         {/* Active Calories Burned */}
@@ -305,12 +400,80 @@ export default function ProgressScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F2F7' },
   scrollContent: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   titleWrapper: { flex: 1, marginRight: 8 },
   title: { fontSize: 22, fontWeight: '700', color: '#1C1C1E' },
   subTitle: { fontSize: 14, color: '#8E8E93', marginTop: 2, fontWeight: '500' },
   adjustGoalsButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E1F0FF', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   adjustGoalsText: { fontSize: 13, fontWeight: '600', color: '#007AFF', marginLeft: 4 },
+
+  // Rings Card Layout
+  ringsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  ringsContainer: {
+    width: 220,
+    height: 220,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  centerTextOverlay: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerCalValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1C1C1E',
+  },
+  centerCalTarget: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: 18,
+    paddingTop: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E5EA',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 6,
+  },
+  legendTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1C1C1E',
+  },
+  legendSub: {
+    fontSize: 11,
+    color: '#8E8E93',
+    fontWeight: '500',
+  },
+
   metricContainer: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 18, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 },
   metricHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   metricLabel: { fontSize: 16, fontWeight: '600', color: '#3A3A3C' },
