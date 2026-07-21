@@ -1,11 +1,16 @@
 import { useGoalsStore } from '@/data/dataStores/useGoalStore';
 import React, { useEffect, useState } from 'react';
 import {
+    Keyboard,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
+    TouchableWithoutFeedback,
     View,
 } from 'react-native';
 
@@ -73,82 +78,95 @@ export const SetGoalsModal: React.FC<SetGoalsModalProps> = ({ isVisible, onClose
             animationType="slide"
             onRequestClose={onClose}
         >
-            <View style={styles.modalOverlay}>
-                <View style={styles.modalContainer}>
-                    <Text style={styles.modalTitle}>Set Daily Targets</Text>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <View style={styles.modalOverlay}>
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={styles.keyboardView}
+                    >
+                        <View style={styles.modalContainer}>
+                            <ScrollView
+                                showsVerticalScrollIndicator={false}
+                                contentContainerStyle={styles.scrollContent}
+                                keyboardShouldPersistTaps="handled"
+                            >
+                                <Text style={styles.modalTitle}>Set Daily Targets</Text>
 
-                    {/* Calories Target */}
-                    <View style={styles.inputRow}>
-                        <Text style={styles.inputLabel}>Calories Consumed (kcal)</Text>
-                        <TextInput
-                            style={styles.input}
-                            keyboardType="numeric"
-                            value={calories}
-                            onChangeText={setCalories}
-                            placeholder="e.g. 2000"
-                        />
-                    </View>
+                                {/* Calories Target */}
+                                <View style={styles.inputRow}>
+                                    <Text style={styles.inputLabel}>Calories Consumed (kcal)</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        keyboardType="numeric"
+                                        value={calories}
+                                        onChangeText={setCalories}
+                                        placeholder="e.g. 2000"
+                                    />
+                                </View>
 
-                    {/* Protein Target */}
-                    <View style={styles.inputRow}>
-                        <Text style={styles.inputLabel}>Protein Goal (g)</Text>
-                        <TextInput
-                            style={styles.input}
-                            keyboardType="numeric"
-                            value={protein}
-                            onChangeText={setProtein}
-                            placeholder="e.g. 130"
-                        />
-                    </View>
+                                {/* Protein Target */}
+                                <View style={styles.inputRow}>
+                                    <Text style={styles.inputLabel}>Protein Goal (g)</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        keyboardType="numeric"
+                                        value={protein}
+                                        onChangeText={setProtein}
+                                        placeholder="e.g. 130"
+                                    />
+                                </View>
 
-                    {/* Fiber Target */}
-                    <View style={styles.inputRow}>
-                        <Text style={styles.inputLabel}>Fiber Goal (g)</Text>
-                        <TextInput
-                            style={styles.input}
-                            keyboardType="numeric"
-                            value={fiber}
-                            onChangeText={setFiber}
-                            placeholder="e.g. 30"
-                        />
-                    </View>
+                                {/* Fiber Target */}
+                                <View style={styles.inputRow}>
+                                    <Text style={styles.inputLabel}>Fiber Goal (g)</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        keyboardType="numeric"
+                                        value={fiber}
+                                        onChangeText={setFiber}
+                                        placeholder="e.g. 30"
+                                    />
+                                </View>
 
-                    {/* Active Calories Burned Goal */}
-                    <View style={styles.inputRow}>
-                        <Text style={styles.inputLabel}>Active Burn Goal (kcal)</Text>
-                        <TextInput
-                            style={styles.input}
-                            keyboardType="numeric"
-                            value={activeCalories}
-                            onChangeText={setActiveCalories}
-                            placeholder="e.g. 500"
-                        />
-                    </View>
+                                {/* Active Calories Burned Goal */}
+                                <View style={styles.inputRow}>
+                                    <Text style={styles.inputLabel}>Active Burn Goal (kcal)</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        keyboardType="numeric"
+                                        value={activeCalories}
+                                        onChangeText={setActiveCalories}
+                                        placeholder="e.g. 500"
+                                    />
+                                </View>
 
-                    {/* Steps Goal */}
-                    <View style={styles.inputRow}>
-                        <Text style={styles.inputLabel}>Daily Steps Goal</Text>
-                        <TextInput
-                            style={styles.input}
-                            keyboardType="numeric"
-                            value={steps}
-                            onChangeText={setSteps}
-                            placeholder="e.g. 10000"
-                        />
-                    </View>
+                                {/* Steps Goal */}
+                                <View style={styles.inputRow}>
+                                    <Text style={styles.inputLabel}>Daily Steps Goal</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        keyboardType="numeric"
+                                        value={steps}
+                                        onChangeText={setSteps}
+                                        placeholder="e.g. 10000"
+                                    />
+                                </View>
 
-                    {/* Action Buttons */}
-                    <View style={styles.buttonRow}>
-                        <TouchableOpacity style={[styles.button, styles.cancelBtn]} onPress={onClose}>
-                            <Text style={styles.cancelText}>Cancel</Text>
-                        </TouchableOpacity>
+                                {/* Action Buttons */}
+                                <View style={styles.buttonRow}>
+                                    <TouchableOpacity style={[styles.button, styles.cancelBtn]} onPress={onClose}>
+                                        <Text style={styles.cancelText}>Cancel</Text>
+                                    </TouchableOpacity>
 
-                        <TouchableOpacity style={[styles.button, styles.saveBtn]} onPress={handleSave}>
-                            <Text style={styles.saveText}>Save Targets</Text>
-                        </TouchableOpacity>
-                    </View>
+                                    <TouchableOpacity style={[styles.button, styles.saveBtn]} onPress={handleSave}>
+                                        <Text style={styles.saveText}>Save Targets</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </ScrollView>
+                        </View>
+                    </KeyboardAvoidingView>
                 </View>
-            </View>
+            </TouchableWithoutFeedback>
         </Modal>
     );
 };
@@ -160,16 +178,26 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    keyboardView: {
+        width: '100%',
+        alignItems: 'center',
+    },
     modalContainer: {
         width: '88%',
+        maxHeight: '80%',
         backgroundColor: '#FFFFFF',
         borderRadius: 20,
-        padding: 22,
+        paddingHorizontal: 22,
+        paddingTop: 22,
+        paddingBottom: 10,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
         elevation: 4,
+    },
+    scrollContent: {
+        paddingBottom: 12,
     },
     modalTitle: {
         fontSize: 20,
