@@ -7,7 +7,9 @@ const permissions: HealthKitPermissions = {
   permissions: {
     read: [
       AppleHealthKit.Constants.Permissions.ActiveEnergyBurned,
+      AppleHealthKit.Constants.Permissions.BasalEnergyBurned,
       AppleHealthKit.Constants.Permissions.Workout,
+      AppleHealthKit.Constants.Permissions.Steps,
     ],
     write: [],
   },
@@ -29,7 +31,31 @@ export const initHealthKit = (): Promise<boolean> => {
     });
   });
 };
+export const fetchStepsForDate = (date: Date): Promise<number> => {
+  return new Promise((resolve) => {
+    // Start of the selected day (00:00:00)
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
 
+    // End of the selected day (23:59:59)
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+
+    const options = {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+    };
+
+    AppleHealthKit.getStepCount(options, (err, results) => {
+      if (err) {
+        console.log('[HealthKit] Error fetching steps:', err);
+        resolve(0);
+        return;
+      }
+      resolve(results ? results.value : 0);
+    });
+  });
+};
 /**
  * Fetch total active workout calories burned for a specific target date
  */

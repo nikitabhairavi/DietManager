@@ -1,15 +1,11 @@
 import { useGoalsStore } from '@/data/dataStores/useGoalStore';
 import React, { useEffect, useState } from 'react';
 import {
-    Keyboard,
-    KeyboardAvoidingView,
     Modal,
-    Platform,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    TouchableWithoutFeedback,
     View,
 } from 'react-native';
 
@@ -19,102 +15,209 @@ interface SetGoalsModalProps {
 }
 
 export const SetGoalsModal: React.FC<SetGoalsModalProps> = ({ isVisible, onClose }) => {
-    const { dailyCaloriesTarget, dailyProteinTarget, dailyFiberTarget, setTargets } = useGoalsStore();
+    const {
+        dailyCaloriesTarget,
+        dailyProteinTarget,
+        dailyFiberTarget,
+        dailyActiveCaloriesTarget,
+        dailyStepsTarget,
+        setTargets,
+    } = useGoalsStore();
 
-    const [calories, setCalories] = useState(dailyCaloriesTarget.toString());
-    const [protein, setProtein] = useState(dailyProteinTarget.toString());
-    const [fiber, setFiber] = useState(dailyFiberTarget.toString());
+    const [calories, setCalories] = useState('');
+    const [protein, setProtein] = useState('');
+    const [fiber, setFiber] = useState('');
+    const [activeCalories, setActiveCalories] = useState('');
+    const [steps, setSteps] = useState('');
 
-    // Keep fields synchronized with the store state whenever opened
+    // Prefill active goals when opening modal
     useEffect(() => {
         if (isVisible) {
             setCalories(dailyCaloriesTarget.toString());
             setProtein(dailyProteinTarget.toString());
             setFiber(dailyFiberTarget.toString());
+            setActiveCalories((dailyActiveCaloriesTarget || 500).toString());
+            setSteps((dailyStepsTarget || 10000).toString());
         }
-    }, [isVisible, dailyCaloriesTarget, dailyProteinTarget, dailyFiberTarget]);
+    }, [
+        isVisible,
+        dailyCaloriesTarget,
+        dailyProteinTarget,
+        dailyFiberTarget,
+        dailyActiveCaloriesTarget,
+        dailyStepsTarget,
+    ]);
 
-    const handleSaveGoals = () => {
-        const parsedCal = parseInt(calories, 10) || 0;
-        const parsedPro = parseFloat(protein) || 0;
-        const parsedFib = parseFloat(fiber) || 0;
-
-        if (parsedCal <= 0 || parsedPro <= 0 || parsedFib <= 0) {
-            alert('Please enter valid baseline numbers greater than 0.');
-            return;
-        }
+    const handleSave = () => {
+        const parsedCalories = parseFloat(calories) || dailyCaloriesTarget;
+        const parsedProtein = parseFloat(protein) || dailyProteinTarget;
+        const parsedFiber = parseFloat(fiber) || dailyFiberTarget;
+        const parsedActiveCalories = parseFloat(activeCalories) || dailyActiveCaloriesTarget;
+        const parsedSteps = parseInt(steps, 10) || dailyStepsTarget;
 
         setTargets({
-            calories: parsedCal,
-            protein: parseFloat(parsedPro.toFixed(1)),
-            fiber: parseFloat(parsedFib.toFixed(1)),
+            calories: parsedCalories,
+            protein: parsedProtein,
+            fiber: parsedFiber,
+            activeCalories: parsedActiveCalories,
+            steps: parsedSteps,
         });
 
         onClose();
     };
 
     return (
-        <Modal visible={isVisible} animationType="fade" transparent onRequestClose={onClose}>
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <View style={styles.modalOverlay}>
-                    <KeyboardAvoidingView
-                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        style={styles.modalContainer}
-                    >
-                        <Text style={styles.modalTitle}>Set Macro Targets</Text>
+        <Modal
+            visible={isVisible}
+            transparent
+            animationType="slide"
+            onRequestClose={onClose}
+        >
+            <View style={styles.modalOverlay}>
+                <View style={styles.modalContainer}>
+                    <Text style={styles.modalTitle}>Set Daily Targets</Text>
 
-                        <Text style={styles.inputLabel}>Daily Calories Target (kcal)</Text>
+                    {/* Calories Target */}
+                    <View style={styles.inputRow}>
+                        <Text style={styles.inputLabel}>Calories Consumed (kcal)</Text>
                         <TextInput
-                            style={styles.textInput}
+                            style={styles.input}
                             keyboardType="numeric"
                             value={calories}
                             onChangeText={setCalories}
-                            placeholder="e.g., 2000"
+                            placeholder="e.g. 2000"
                         />
+                    </View>
 
-                        <Text style={styles.inputLabel}>Daily Protein Target (g)</Text>
+                    {/* Protein Target */}
+                    <View style={styles.inputRow}>
+                        <Text style={styles.inputLabel}>Protein Goal (g)</Text>
                         <TextInput
-                            style={styles.textInput}
+                            style={styles.input}
                             keyboardType="numeric"
                             value={protein}
                             onChangeText={setProtein}
-                            placeholder="e.g., 130"
+                            placeholder="e.g. 130"
                         />
+                    </View>
 
-                        <Text style={styles.inputLabel}>Daily Fiber Target (g)</Text>
+                    {/* Fiber Target */}
+                    <View style={styles.inputRow}>
+                        <Text style={styles.inputLabel}>Fiber Goal (g)</Text>
                         <TextInput
-                            style={styles.textInput}
+                            style={styles.input}
                             keyboardType="numeric"
                             value={fiber}
                             onChangeText={setFiber}
-                            placeholder="e.g., 30"
+                            placeholder="e.g. 30"
                         />
+                    </View>
 
-                        <View style={styles.actionRow}>
-                            <TouchableOpacity style={[styles.btn, styles.btnCancel]} onPress={onClose}>
-                                <Text style={styles.btnCancelText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[styles.btn, styles.btnSave]} onPress={handleSaveGoals}>
-                                <Text style={styles.btnSaveText}>Save Goals</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </KeyboardAvoidingView>
+                    {/* Active Calories Burned Goal */}
+                    <View style={styles.inputRow}>
+                        <Text style={styles.inputLabel}>Active Burn Goal (kcal)</Text>
+                        <TextInput
+                            style={styles.input}
+                            keyboardType="numeric"
+                            value={activeCalories}
+                            onChangeText={setActiveCalories}
+                            placeholder="e.g. 500"
+                        />
+                    </View>
+
+                    {/* Steps Goal */}
+                    <View style={styles.inputRow}>
+                        <Text style={styles.inputLabel}>Daily Steps Goal</Text>
+                        <TextInput
+                            style={styles.input}
+                            keyboardType="numeric"
+                            value={steps}
+                            onChangeText={setSteps}
+                            placeholder="e.g. 10000"
+                        />
+                    </View>
+
+                    {/* Action Buttons */}
+                    <View style={styles.buttonRow}>
+                        <TouchableOpacity style={[styles.button, styles.cancelBtn]} onPress={onClose}>
+                            <Text style={styles.cancelText}>Cancel</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={[styles.button, styles.saveBtn]} onPress={handleSave}>
+                            <Text style={styles.saveText}>Save Targets</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            </TouchableWithoutFeedback>
+            </View>
         </Modal>
     );
 };
 
 const styles = StyleSheet.create({
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.4)', justifyContent: 'center', alignItems: 'center' },
-    modalContainer: { backgroundColor: '#FFF', borderRadius: 20, width: '85%', maxWidth: 360, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 28, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 6 },
-    modalTitle: { fontSize: 20, fontWeight: '700', color: '#111', marginBottom: 20, textAlign: 'center' },
-    inputLabel: { fontSize: 14, fontWeight: '600', color: '#444', marginBottom: 6 },
-    textInput: { backgroundColor: '#F5F5F7', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, color: '#000', marginBottom: 16, borderWidth: 1, borderColor: '#E5E5EA' },
-    actionRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-    btn: { flex: 0.48, borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-    btnCancel: { backgroundColor: '#F2F2F7' },
-    btnCancelText: { fontSize: 16, fontWeight: '600', color: '#FF3B30' },
-    btnSave: { backgroundColor: '#007AFF' },
-    btnSaveText: { fontSize: 16, fontWeight: '600', color: '#FFF' },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContainer: {
+        width: '88%',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        padding: 22,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#1C1C1E',
+        marginBottom: 18,
+        textAlign: 'center',
+    },
+    inputRow: {
+        marginBottom: 14,
+    },
+    inputLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#3A3A3C',
+        marginBottom: 6,
+    },
+    input: {
+        backgroundColor: '#F2F2F7',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        fontSize: 15,
+        color: '#1C1C1E',
+    },
+    buttonRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 10,
+    },
+    button: {
+        flex: 0.48,
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    cancelBtn: {
+        backgroundColor: '#E5E5EA',
+    },
+    cancelText: {
+        color: '#1C1C1E',
+        fontWeight: '600',
+    },
+    saveBtn: {
+        backgroundColor: '#007AFF',
+    },
+    saveText: {
+        color: '#FFFFFF',
+        fontWeight: '600',
+    },
 });
