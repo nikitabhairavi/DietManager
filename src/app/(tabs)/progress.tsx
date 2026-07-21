@@ -14,7 +14,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { CalendarStrip } from '../components/meals/calendarStrip';
+import { CalendarStrip } from '../../components/meals/calendarStrip';
 
 export default function ProgressScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());

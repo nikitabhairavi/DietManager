@@ -1,5 +1,5 @@
-import { db } from '@/app/firestore/config/firebase';
 import { Ingredient } from "@/data/dataStores/ingredientsStore/useIngredientStore";
+import { db } from '@/firestore/config/firebase';
 import { collection, deleteDoc, doc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
 import { Recipe } from '../types/RecipeTypes';
 

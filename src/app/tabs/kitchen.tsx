@@ -1,22 +1,23 @@
-import { AddIngredientModal } from '@/modals/AddIngredientModal';
-import { AddRecipeModal } from '@/modals/AddRecipeModal'; // Imported the new recipe creation modal
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { KitchenIngredients } from '../../components/kitchen/KitchenIngredients';
 import { KitchenRecipes } from '../../components/kitchen/KitchenRecipes';
+import { AddIngredientModal } from '../../modals/AddIngredientModal';
+
+// Modular Child Target Imports
+
 
 export default function MyKitchenScreen() {
   const [activeTab, setActiveTab] = useState<'ingredients' | 'recipes'>('ingredients');
   const [searchQuery, setSearchQuery] = useState('');
   const [isIngredientModalOpen, setIsIngredientModalOpen] = useState(false);
-  const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false); // Added recipe modal state
 
   const handleFabPress = () => {
     if (activeTab === 'ingredients') {
       setIsIngredientModalOpen(true);
     } else {
-      setIsRecipeModalOpen(true); // Now fires the recipe creation layout cleanly
+      console.log('Open Recipe flow modal here');
     }
   };
 
@@ -90,11 +91,6 @@ export default function MyKitchenScreen() {
       <AddIngredientModal
         isVisible={isIngredientModalOpen}
         onClose={() => setIsIngredientModalOpen(false)}
-      />
-
-      <AddRecipeModal
-        isVisible={isRecipeModalOpen}
-        onClose={() => setIsRecipeModalOpen(false)}
       />
     </SafeAreaView>
   );

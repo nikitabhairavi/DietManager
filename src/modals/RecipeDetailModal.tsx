@@ -1,6 +1,6 @@
-import { Recipe, RecipeIngredient } from '@/app/types/RecipeTypes';
 import { useIngredientsStore } from '@/data/dataStores/ingredientsStore/useIngredientStore';
 import { useRecipeStore } from '@/data/dataStores/recipeStore/useRecipeStore';
+import { Recipe, RecipeIngredient } from '@/types/RecipeTypes';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {

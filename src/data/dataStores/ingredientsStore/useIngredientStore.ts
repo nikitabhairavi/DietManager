@@ -2,7 +2,7 @@ import {
   deleteIngredientFromFirestore,
   fetchIngredientsFromFirestore,
   saveIngredientToFirestore,
-} from '@/app/firestore/firestore';
+} from '@/firestore/firestore';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { appStorage } from '../../storage/dataStorage';

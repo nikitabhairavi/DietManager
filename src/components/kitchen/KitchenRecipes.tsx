@@ -1,6 +1,6 @@
-import { Recipe } from '@/app/types/RecipeTypes';
 import { useRecipeStore } from '@/data/dataStores/recipeStore/useRecipeStore';
 import { RecipeDetailModal } from '@/modals/RecipeDetailModal';
+import { Recipe } from '@/types/RecipeTypes';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {

@@ -1,10 +1,10 @@
+import { appStorage } from '@/data/storage/dataStorage';
 import {
   deleteRecipeFromFirestore,
   fetchRecipesFromFirestore,
   saveRecipeToFirestore,
-} from '@/app/firestore/firestore';
-import { Recipe } from '@/app/types/RecipeTypes';
-import { appStorage } from '@/data/storage/dataStorage';
+} from '@/firestore/firestore';
+import { Recipe } from '@/types/RecipeTypes';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 

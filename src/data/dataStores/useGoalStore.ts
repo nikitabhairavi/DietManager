@@ -2,7 +2,7 @@ import {
   fetchActiveCaloriesForDate,
   fetchStepsForDate,
   initHealthKit
-} from '@/app/services/healthKitService';
+} from '@/services/healthKitService';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { appStorage } from '../storage/dataStorage';
