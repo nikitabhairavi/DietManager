@@ -11,23 +11,12 @@ const generateSearchTokens = (name: string): string[] => {
 };
 export const saveIngredientToFirestore = async (ingredient: Ingredient) => {
   try {
-    const { id, ...data } = ingredient;
+    const docRef = doc(db, 'ingredients', ingredient.id);
 
-    // Sanitize the name so it can safely be used as a document ID key
-    const docId = ingredient.name.trim();
+    // Convert object to JSON string and back to automatically strip undefined values
+    const cleanedIngredient = JSON.parse(JSON.stringify(ingredient));
 
-    // Use the ingredient name as the document ID
-    const docRef = doc(db, 'ingredients', docId);
-
-    await setDoc(docRef, {
-      ...data,
-      id: docId, // Keep id consistent with document ID
-      searchTokens: generateSearchTokens(ingredient.name),
-      isCustom: true,
-      createdAt: serverTimestamp(),
-    });
-
-    console.log(`Ingredient ${ingredient.name} saved to Firestore!`);
+    await setDoc(docRef, cleanedIngredient, { merge: true });
   } catch (error) {
     console.error('Failed to save ingredient to Firestore:', error);
     throw error;
@@ -117,6 +106,17 @@ export const deleteRecipeFromFirestore = async (docId: string) => {
     console.log(`Recipe "${docId}" deleted from Firestore`);
   } catch (error) {
     console.error('Failed to delete recipe from Firestore:', error);
+    throw error;
+  }
+};
+
+export const deleteIngredientFromFirestore = async (docId: string) => {
+  try {
+    const docRef = doc(db, 'ingredients', docId);
+    await deleteDoc(docRef);
+    console.log(`Ingredient "${docId}" deleted from Firestore`);
+  } catch (error) {
+    console.error('Failed to delete ingredient from Firestore:', error);
     throw error;
   }
 };

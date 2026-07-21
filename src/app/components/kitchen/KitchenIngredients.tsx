@@ -1,6 +1,7 @@
-import { useIngredientsStore } from '@/data/dataStores/ingredientsStore/useIngredientStore';
+import { Ingredient, useIngredientsStore } from '@/data/dataStores/ingredientsStore/useIngredientStore';
+import { IngredientDetailsModal } from '@/modals/IngredientDetailsModal'; // Adjust relative path as needed
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -24,6 +25,10 @@ export const KitchenIngredients: React.FC<KitchenIngredientsProps> = ({ searchQu
   const fetchIngredients = useIngredientsStore((state) => state.fetchIngredients);
   const removeIngredient = useIngredientsStore((state) => state.deleteIngredient);
 
+  // States to handle visibility and context of active ingredient modal
+  const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
   useEffect(() => {
     loadInitialIngredients();
   }, [loadInitialIngredients]);
@@ -37,13 +42,23 @@ export const KitchenIngredients: React.FC<KitchenIngredientsProps> = ({ searchQu
     );
   }
 
-  // 3. COMPUTED VALUES
+  // 3. EVENT HANDLERS & COMPUTED VALUES
   const filteredIngredients = ingredients.filter((ing) => {
     if (ing?.name) {
       return ing.name.toLowerCase().includes(searchQuery.toLowerCase());
     }
     return false;
   });
+
+  const handleOpenDetails = (ingredient: Ingredient) => {
+    setSelectedIngredient(ingredient);
+    setIsModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+    setSelectedIngredient(null);
+  };
 
   return (
     <View style={styles.wrapper}>
@@ -55,7 +70,11 @@ export const KitchenIngredients: React.FC<KitchenIngredientsProps> = ({ searchQu
           <RefreshControl refreshing={isRefreshing} onRefresh={fetchIngredients} />
         }
         renderItem={({ item }) => (
-          <View style={styles.itemCard}>
+          <TouchableOpacity
+            style={styles.itemCard}
+            activeOpacity={0.7}
+            onPress={() => handleOpenDetails(item)}
+          >
             <View style={styles.cardContent}>
               <Text style={styles.itemName}>{item.name}</Text>
               <Text style={styles.itemDetails}>
@@ -65,12 +84,15 @@ export const KitchenIngredients: React.FC<KitchenIngredientsProps> = ({ searchQu
 
             <TouchableOpacity
               style={styles.deleteButton}
-              onPress={() => removeIngredient(item.id)}
+              onPress={(e) => {
+                e.stopPropagation();
+                removeIngredient(item.id);
+              }}
               activeOpacity={0.6}
             >
               <Ionicons name="trash-outline" size={20} color="#FF3B30" />
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         )}
         ListEmptyComponent={
           <Text style={styles.emptyText}>
@@ -79,6 +101,13 @@ export const KitchenIngredients: React.FC<KitchenIngredientsProps> = ({ searchQu
               : 'No ingredients in your kitchen. Tap + to add.'}
           </Text>
         }
+      />
+
+      {/* Separate Modal Layer for Ingredient Specific Updates */}
+      <IngredientDetailsModal
+        ingredient={selectedIngredient}
+        isVisible={isModalVisible}
+        onClose={handleCloseModal}
       />
     </View>
   );

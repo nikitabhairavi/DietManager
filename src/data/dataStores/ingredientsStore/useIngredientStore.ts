@@ -1,4 +1,8 @@
-import { fetchIngredientsFromFirestore, saveIngredientToFirestore } from '@/app/firestore/firestore';
+import {
+  deleteIngredientFromFirestore,
+  fetchIngredientsFromFirestore,
+  saveIngredientToFirestore,
+} from '@/app/firestore/firestore';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { appStorage } from '../../storage/dataStorage';
@@ -20,8 +24,8 @@ interface IngredientsState {
   loadInitialIngredients: () => Promise<void>;
   fetchIngredients: () => Promise<void>;
   addIngredient: (ingredient: Omit<Ingredient, 'id'>) => Promise<void>;
-  updateIngredient: (id: string, updated: Partial<Ingredient>) => void;
-  deleteIngredient: (id: string) => void;
+  updateIngredient: (id: string, updated: Partial<Ingredient>) => Promise<void>;
+  deleteIngredient: (id: string) => Promise<void>;
 }
 
 export const useIngredientsStore = create<IngredientsState>()(
@@ -76,17 +80,55 @@ export const useIngredientsStore = create<IngredientsState>()(
         }
       },
 
-      updateIngredient: (id, updated) =>
-        set((state) => ({
-          ingredients: state.ingredients.map((ing) =>
-            ing.id === id ? { ...ing, ...updated } : ing
-          ),
-        })),
+      updateIngredient: async (id, updated) => {
+        const previousIngredients = get()?.ingredients || [];
+        const existingIngredient = previousIngredients.find((ing) => ing.id === id);
 
-      deleteIngredient: (id) =>
-        set((state) => ({
-          ingredients: state.ingredients.filter((ing) => ing.id !== id),
-        })),
+        if (!existingIngredient) return;
+
+        const mergedIngredient: Ingredient = {
+          ...existingIngredient,
+          ...updated,
+          id, // Preserve ID constraint
+        };
+
+        // 1. Optimistic update locally
+        set({
+          ingredients: previousIngredients.map((ing) =>
+            ing.id === id ? mergedIngredient : ing
+          ),
+        });
+
+        // 2. Sync with Firestore
+        try {
+          await saveIngredientToFirestore(mergedIngredient);
+        } catch (error) {
+          console.error('Failed to update ingredient in Firestore:', error);
+          // Rollback on failure
+          set({ ingredients: previousIngredients });
+        }
+      },
+
+      deleteIngredient: async (id) => {
+        const previousIngredients = get()?.ingredients || [];
+        const targetIngredient = previousIngredients.find((ing) => ing.id === id);
+
+        if (!targetIngredient) return;
+
+        // 1. Optimistic deletion locally
+        set({
+          ingredients: previousIngredients.filter((ing) => ing.id !== id),
+        });
+
+        // 2. Sync deletion with Firestore
+        try {
+          await deleteIngredientFromFirestore(id);
+        } catch (error) {
+          console.error('Failed to delete ingredient from Firestore:', error);
+          // Rollback on failure
+          set({ ingredients: previousIngredients });
+        }
+      },
     }),
     {
       name: 'ingredients',
