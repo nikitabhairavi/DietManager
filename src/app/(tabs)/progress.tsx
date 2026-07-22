@@ -14,8 +14,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
 import { CalendarStrip } from '../../components/meals/calendarStrip';
+import { NutritionRings } from '../../components/progress/NutritionRings'; // Adjust path as needed
 
 export default function ProgressScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -70,15 +70,12 @@ export default function ProgressScreen() {
     );
   }, [mealsByDay, targetDateString]);
 
-  const macroPercentages = useMemo(() => {
+  const activityPercentages = useMemo(() => {
     return {
-      calories: Math.min((dailyTotals.calories / (dailyCaloriesTarget || 1)) * 100, 100),
-      protein: Math.min((dailyTotals.protein / (dailyProteinTarget || 1)) * 100, 100),
-      fiber: Math.min((dailyTotals.fiber / (dailyFiberTarget || 1)) * 100, 100),
       activeCalories: Math.min((activeCaloriesBurned / (dailyActiveCaloriesTarget || 1)) * 100, 100),
       steps: Math.min((stepsCompleted / (dailyStepsTarget || 1)) * 100, 100),
     };
-  }, [dailyTotals, dailyCaloriesTarget, dailyProteinTarget, dailyFiberTarget, activeCaloriesBurned, dailyActiveCaloriesTarget, stepsCompleted, dailyStepsTarget]);
+  }, [activeCaloriesBurned, dailyActiveCaloriesTarget, stepsCompleted, dailyStepsTarget]);
 
   const displayTitle = useMemo(() => {
     return selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -109,25 +106,6 @@ export default function ProgressScreen() {
     setIsSyncingWatch(false);
   };
 
-  // Concentric Circle Dimensions
-  const centerPos = 110;
-  const strokeWidth = 12;
-
-  // Ring Radii
-  const calRadius = 90;
-  const proteinRadius = 72;
-  const fiberRadius = 54;
-
-  // Circumferences
-  const calCircumference = 2 * Math.PI * calRadius;
-  const proteinCircumference = 2 * Math.PI * proteinRadius;
-  const fiberCircumference = 2 * Math.PI * fiberRadius;
-
-  // Offsets
-  const calOffset = calCircumference - (macroPercentages.calories / 100) * calCircumference;
-  const proteinOffset = proteinCircumference - (macroPercentages.protein / 100) * proteinCircumference;
-  const fiberOffset = fiberCircumference - (macroPercentages.fiber / 100) * fiberCircumference;
-
   return (
     <SafeAreaView style={styles.container}>
       <CalendarStrip selectedDate={selectedDate} onDateSelect={(date) => setSelectedDate(date)} />
@@ -148,130 +126,17 @@ export default function ProgressScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Concentric Macro Rings Card */}
-        <View style={styles.ringsCard}>
-          <View style={styles.ringsContainer}>
-            <Svg width={220} height={220}>
-              {/* Outer Ring: Calories Background */}
-              <Circle
-                cx={centerPos}
-                cy={centerPos}
-                r={calRadius}
-                stroke="#E5E5EA"
-                strokeWidth={strokeWidth}
-                fill="none"
-              />
-              {/* Outer Ring: Calories Progress */}
-              <Circle
-                cx={centerPos}
-                cy={centerPos}
-                r={calRadius}
-                stroke="#FF9500"
-                strokeWidth={strokeWidth}
-                fill="none"
-                strokeDasharray={calCircumference}
-                strokeDashoffset={calOffset}
-                strokeLinecap="round"
-                rotation="-90"
-                origin={`${centerPos}, ${centerPos}`}
-              />
+        {/* Separated Circular Component */}
+        <NutritionRings
+          calories={dailyTotals.calories}
+          caloriesTarget={dailyCaloriesTarget}
+          protein={dailyTotals.protein}
+          proteinTarget={dailyProteinTarget}
+          fiber={dailyTotals.fiber}
+          fiberTarget={dailyFiberTarget}
+        />
 
-              {/* Middle Ring: Protein Background */}
-              <Circle
-                cx={centerPos}
-                cy={centerPos}
-                r={proteinRadius}
-                stroke="#E5E5EA"
-                strokeWidth={strokeWidth}
-                fill="none"
-              />
-              {/* Middle Ring: Protein Progress */}
-              <Circle
-                cx={centerPos}
-                cy={centerPos}
-                r={proteinRadius}
-                stroke="#007AFF"
-                strokeWidth={strokeWidth}
-                fill="none"
-                strokeDasharray={proteinCircumference}
-                strokeDashoffset={proteinOffset}
-                strokeLinecap="round"
-                rotation="-90"
-                origin={`${centerPos}, ${centerPos}`}
-              />
-
-              {/* Inner Ring: Fiber Background */}
-              <Circle
-                cx={centerPos}
-                cy={centerPos}
-                r={fiberRadius}
-                stroke="#E5E5EA"
-                strokeWidth={strokeWidth}
-                fill="none"
-              />
-              {/* Inner Ring: Fiber Progress */}
-              <Circle
-                cx={centerPos}
-                cy={centerPos}
-                r={fiberRadius}
-                stroke="#34C759"
-                strokeWidth={strokeWidth}
-                fill="none"
-                strokeDasharray={fiberCircumference}
-                strokeDashoffset={fiberOffset}
-                strokeLinecap="round"
-                rotation="-90"
-                origin={`${centerPos}, ${centerPos}`}
-              />
-            </Svg>
-
-            {/* Center Summary Label */}
-            <View style={styles.centerTextOverlay}>
-              <Text style={styles.centerCalValue}>
-                {dailyTotals.calories.toFixed(0)}
-              </Text>
-              <Text style={styles.centerCalTarget}>/ {dailyCaloriesTarget} kcal</Text>
-            </View>
-          </View>
-
-          {/* Key Legend Below Rings */}
-          <View style={styles.legendRow}>
-            {/* Calories Legend */}
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#FF9500' }]} />
-              <View>
-                <Text style={styles.legendTitle}>Calories</Text>
-                <Text style={styles.legendSub}>
-                  {dailyTotals.calories.toFixed(0)} / {dailyCaloriesTarget}
-                </Text>
-              </View>
-            </View>
-
-            {/* Protein Legend */}
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#007AFF' }]} />
-              <View>
-                <Text style={styles.legendTitle}>Protein</Text>
-                <Text style={styles.legendSub}>
-                  {dailyTotals.protein.toFixed(1)} / {dailyProteinTarget}g
-                </Text>
-              </View>
-            </View>
-
-            {/* Fiber Legend */}
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#34C759' }]} />
-              <View>
-                <Text style={styles.legendTitle}>Fiber</Text>
-                <Text style={styles.legendSub}>
-                  {dailyTotals.fiber.toFixed(1)} / {dailyFiberTarget}g
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Active Calories Burned (Weight Lifting / Workout focus) */}
+        {/* Active Calories Burned */}
         <View style={styles.activityCard}>
           <View style={styles.activityHeader}>
             <View style={styles.activityTitleGroup}>
@@ -306,7 +171,6 @@ export default function ProgressScreen() {
             </View>
           </View>
 
-          {/* Stats Dashboard Grid */}
           <View style={styles.statsGrid}>
             <View style={styles.statColumn}>
               <Text style={styles.statNumber}>{activeCaloriesBurned.toFixed(0)} <Text style={styles.statUnit}>kcal</Text></Text>
@@ -327,13 +191,12 @@ export default function ProgressScreen() {
             </View>
           </View>
 
-          {/* Progress Bar */}
           <View style={styles.progressBarTrack}>
-            <View style={[styles.progressBarFill, { width: `${macroPercentages.activeCalories}%`, backgroundColor: '#FF9500' }]} />
+            <View style={[styles.progressBarFill, { width: `${activityPercentages.activeCalories}%`, backgroundColor: '#FF9500' }]} />
           </View>
         </View>
 
-        {/* Steps Completed Card (Boot / Walking focus) */}
+        {/* Steps Completed */}
         <View style={styles.activityCard}>
           <View style={styles.activityHeader}>
             <View style={styles.activityTitleGroup}>
@@ -368,7 +231,6 @@ export default function ProgressScreen() {
             </View>
           </View>
 
-          {/* Stats Dashboard Grid */}
           <View style={styles.statsGrid}>
             <View style={styles.statColumn}>
               <Text style={styles.statNumber}>{stepsCompleted.toLocaleString()}</Text>
@@ -389,9 +251,8 @@ export default function ProgressScreen() {
             </View>
           </View>
 
-          {/* Progress Bar */}
           <View style={styles.progressBarTrack}>
-            <View style={[styles.progressBarFill, { width: `${macroPercentages.steps}%`, backgroundColor: '#007AFF' }]} />
+            <View style={[styles.progressBarFill, { width: `${activityPercentages.steps}%`, backgroundColor: '#007AFF' }]} />
           </View>
         </View>
       </ScrollView>
@@ -425,7 +286,7 @@ export default function ProgressScreen() {
             <Text style={styles.modalSubtitle}>Log total steps for {targetDateString}</Text>
             <TextInput style={styles.modalInput} keyboardType="numeric" placeholder="e.g. 10000" value={stepsInput} onChangeText={setStepsInput} autoFocus />
             <View style={styles.modalActionRow}>
-              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setIsStepsModalOpen(false)}>
+              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setIsActiveCalModalOpen(false)}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.modalButton, styles.saveButton]} onPress={handleSaveSteps}>
@@ -449,74 +310,6 @@ const styles = StyleSheet.create({
   adjustGoalsButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E1F0FF', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   adjustGoalsText: { fontSize: 13, fontWeight: '600', color: '#007AFF', marginLeft: 4 },
 
-  // Concentric Rings Section
-  ringsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  ringsContainer: {
-    width: 220,
-    height: 220,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  centerTextOverlay: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  centerCalValue: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1C1C1E',
-  },
-  centerCalTarget: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#8E8E93',
-    marginTop: 2,
-  },
-  legendRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginTop: 18,
-    paddingTop: 14,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E5EA',
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 6,
-  },
-  legendTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#1C1C1E',
-  },
-  legendSub: {
-    fontSize: 11,
-    color: '#8E8E93',
-    fontWeight: '500',
-  },
-
-  // Dynamic Activity Dashboard Cards
   activityCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
@@ -615,7 +408,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
 
-  // Modals
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { width: '82%', backgroundColor: '#FFFFFF', borderRadius: 18, padding: 20, alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: '700', color: '#1C1C1E' },
