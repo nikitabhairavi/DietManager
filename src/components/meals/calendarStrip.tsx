@@ -6,9 +6,9 @@ interface CalendarStripProps {
     onDateSelect: (date: Date) => void;
 }
 
-const ITEM_WIDTH = 50;
-const ITEM_MARGIN = 6;
-const FULL_ITEM_SIZE = ITEM_WIDTH + ITEM_MARGIN * 2; // Exactly 62px
+const ITEM_WIDTH = 52;
+const ITEM_MARGIN = 5;
+const FULL_ITEM_SIZE = ITEM_WIDTH + ITEM_MARGIN * 2; // 62px
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDateSelect }) => {
@@ -24,10 +24,9 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
         );
     };
 
-    // Memoize today's date anchor
     const today = useMemo(() => new Date(), []);
 
-    // Generate an array of 14 days surrounding today's current date
+    // Generate 14 days surrounding today
     const daysArray = useMemo(() => {
         const dates = [];
         for (let i = -7; i <= 6; i++) {
@@ -38,20 +37,18 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
         return dates;
     }, [today]);
 
-    // Find the index of the selected date
     const selectedIndex = useMemo(() => {
         return daysArray.findIndex((date) => isSameDay(date, selectedDate));
     }, [daysArray, selectedDate]);
 
-    // Handle centering logic with layout lifecycles in mind
     useEffect(() => {
         if (selectedIndex === -1) return;
 
         const scrollToTarget = () => {
             flatListRef.current?.scrollToIndex({
                 index: selectedIndex,
-                animated: !isInitialMount.current, // Snap instantly on first load, animate on subsequent taps
-                viewPosition: 0.5, // Force absolute viewport centering
+                animated: !isInitialMount.current,
+                viewPosition: 0.5,
             });
             isInitialMount.current = false;
         };
@@ -64,12 +61,14 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
     }, [selectedIndex]);
 
     return (
-        <View style={styles.stripContainer}>
+        <View style={styles.stripWrapper}>
             <FlatList
                 ref={flatListRef}
                 data={daysArray}
                 horizontal
                 showsHorizontalScrollIndicator={false}
+                snapToInterval={FULL_ITEM_SIZE}
+                decelerationRate="fast"
                 keyExtractor={(item) => item.toISOString()}
                 contentContainerStyle={styles.listPadding}
                 getItemLayout={(_, index) => ({
@@ -96,7 +95,7 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
 
                     const dayName = isTodayItem
                         ? 'TODAY'
-                        : item.toLocaleDateString('en-US', { weekday: 'short' });
+                        : item.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
                     const dayNumber = item.getDate();
 
                     return (
@@ -107,10 +106,12 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
                                 isSelected && styles.selectedDayCard,
                             ]}
                             onPress={() => onDateSelect(item)}
-                            activeOpacity={0.7}
+                            activeOpacity={0.8}
                         >
-                            {/* Blue dot indicator for Today when selected */}
-                            {isTodayItem && <View style={[styles.todayDot, isSelected && styles.selectedTodayDot]} />}
+                            {/* Today Accent Dot */}
+                            {isTodayItem && (
+                                <View style={[styles.todayDot, isSelected && styles.selectedTodayDot]} />
+                            )}
 
                             <Text
                                 style={[
@@ -121,6 +122,7 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
                             >
                                 {dayName}
                             </Text>
+
                             <Text
                                 style={[
                                     styles.dayNumberText,
@@ -139,59 +141,69 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
 };
 
 const styles = StyleSheet.create({
-    stripContainer: {
+    stripWrapper: {
         backgroundColor: '#FFFFFF',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderColor: '#E5E5EA',
+        paddingVertical: 14,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.03,
+        shadowRadius: 6,
+        elevation: 2,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: '#E5E5EA',
     },
     listPadding: {
         paddingHorizontal: SCREEN_WIDTH / 2 - FULL_ITEM_SIZE / 2,
     },
     dayCard: {
         width: ITEM_WIDTH,
-        height: 64,
-        borderRadius: 10,
+        height: 68,
+        borderRadius: 16,
         backgroundColor: '#F2F2F7',
         alignItems: 'center',
         justifyContent: 'center',
         marginHorizontal: ITEM_MARGIN,
-        position: 'relative',
+        paddingVertical: 6,
     },
     todayCard: {
-        borderWidth: 1.5,
-        borderColor: '#007AFF',
-        backgroundColor: '#F0F6FF', // Light blue tint for Today
+        backgroundColor: '#EBF5FF',
+        borderWidth: 1,
+        borderColor: '#B3D7FF',
     },
     selectedDayCard: {
         backgroundColor: '#007AFF',
         borderColor: '#007AFF',
+        shadowColor: '#007AFF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 6,
+        elevation: 4,
     },
     todayDot: {
-        position: 'absolute',
-        top: 6,
         width: 4,
         height: 4,
         borderRadius: 2,
         backgroundColor: '#007AFF',
+        marginBottom: 2,
     },
     selectedTodayDot: {
         backgroundColor: '#FFFFFF',
     },
     dayNameText: {
-        fontSize: 11,
-        fontWeight: '500',
+        fontSize: 10,
+        fontWeight: '700',
         color: '#8E8E93',
+        letterSpacing: 0.2,
         marginBottom: 2,
     },
     todayTypeText: {
         color: '#007AFF',
-        fontWeight: '700',
     },
     dayNumberText: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#000000',
+        fontSize: 19,
+        fontWeight: '800',
+        color: '#1C1C1E',
+        letterSpacing: -0.3,
     },
     todayNumberText: {
         color: '#007AFF',
