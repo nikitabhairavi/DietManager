@@ -4,7 +4,6 @@ import { SetGoalsModal } from '@/modals/SetGoalsModal';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Modal,
   SafeAreaView,
   ScrollView,
@@ -15,7 +14,8 @@ import {
   View,
 } from 'react-native';
 import { CalendarStrip } from '../../components/meals/calendarStrip';
-import { NutritionRings } from '../../components/progress/NutritionRings'; // Adjust path as needed
+import { ActivityCard } from '../../components/progress/ActivityCard';
+import { NutritionRings } from '../../components/progress/NutritionRings';
 
 export default function ProgressScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -70,13 +70,6 @@ export default function ProgressScreen() {
     );
   }, [mealsByDay, targetDateString]);
 
-  const activityPercentages = useMemo(() => {
-    return {
-      activeCalories: Math.min((activeCaloriesBurned / (dailyActiveCaloriesTarget || 1)) * 100, 100),
-      steps: Math.min((stepsCompleted / (dailyStepsTarget || 1)) * 100, 100),
-    };
-  }, [activeCaloriesBurned, dailyActiveCaloriesTarget, stepsCompleted, dailyStepsTarget]);
-
   const displayTitle = useMemo(() => {
     return selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }, [selectedDate]);
@@ -126,7 +119,7 @@ export default function ProgressScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Separated Circular Component */}
+        {/* Rings */}
         <NutritionRings
           calories={dailyTotals.calories}
           caloriesTarget={dailyCaloriesTarget}
@@ -136,125 +129,43 @@ export default function ProgressScreen() {
           fiberTarget={dailyFiberTarget}
         />
 
-        {/* Active Calories Burned */}
-        <View style={styles.activityCard}>
-          <View style={styles.activityHeader}>
-            <View style={styles.activityTitleGroup}>
-              <View style={[styles.activityIconBadge, { backgroundColor: '#FFF4E5' }]}>
-                <Ionicons name="barbell" size={20} color="#FF9500" />
-              </View>
-              <Text style={styles.activityTitle}>Active Burn</Text>
-            </View>
+        {/* Active Calories Burned Card */}
+        <ActivityCard
+          title="Active Burn"
+          iconName="barbell"
+          themeColor="#FF9500"
+          badgeBgColor="#FFF4E5"
+          currentValue={activeCaloriesBurned}
+          targetValue={dailyActiveCaloriesTarget}
+          unit="kcal"
+          currentLabel="Current Burn"
+          targetLabel="Daily Target"
+          isSyncing={isSyncingWatch}
+          onEditPress={() => {
+            setActiveCalInput(activeCaloriesBurned.toString());
+            setIsActiveCalModalOpen(true);
+          }}
+          onSyncPress={handleAppleWatchSync}
+        />
 
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                onPress={() => {
-                  setActiveCalInput(activeCaloriesBurned.toString());
-                  setIsActiveCalModalOpen(true);
-                }}
-                style={styles.editIconBtn}
-              >
-                <Ionicons name="pencil-sharp" size={14} color="#007AFF" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleAppleWatchSync}
-                style={[styles.editIconBtn, { marginLeft: 6 }]}
-                disabled={isSyncingWatch}
-              >
-                {isSyncingWatch ? (
-                  <ActivityIndicator size="small" color="#007AFF" />
-                ) : (
-                  <Ionicons name="watch-outline" size={15} color="#007AFF" />
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.statsGrid}>
-            <View style={styles.statColumn}>
-              <Text style={styles.statNumber}>{activeCaloriesBurned.toFixed(0)} <Text style={styles.statUnit}>kcal</Text></Text>
-              <Text style={styles.statLabel}>Current Burn</Text>
-            </View>
-
-            <View style={styles.statDivider} />
-
-            <View style={styles.statColumn}>
-              <Text style={styles.statNumber}>{dailyActiveCaloriesTarget} <Text style={styles.statUnit}>kcal</Text></Text>
-              <Text style={styles.statLabel}>Daily Target</Text>
-            </View>
-
-            <View style={[styles.completionBadge, { backgroundColor: '#FFF4E5' }]}>
-              <Text style={[styles.completionText, { color: '#FF9500' }]}>
-                {((activeCaloriesBurned / (dailyActiveCaloriesTarget || 1)) * 100).toFixed(0)}%
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.progressBarTrack}>
-            <View style={[styles.progressBarFill, { width: `${activityPercentages.activeCalories}%`, backgroundColor: '#FF9500' }]} />
-          </View>
-        </View>
-
-        {/* Steps Completed */}
-        <View style={styles.activityCard}>
-          <View style={styles.activityHeader}>
-            <View style={styles.activityTitleGroup}>
-              <View style={[styles.activityIconBadge, { backgroundColor: '#EBF8FF' }]}>
-                <Ionicons name="footsteps-outline" size={20} color="#007AFF" />
-              </View>
-              <Text style={styles.activityTitle}>Steps Tracker</Text>
-            </View>
-
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                onPress={() => {
-                  setStepsInput(stepsCompleted.toString());
-                  setIsStepsModalOpen(true);
-                }}
-                style={styles.editIconBtn}
-              >
-                <Ionicons name="pencil-sharp" size={14} color="#007AFF" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleAppleWatchSync}
-                style={[styles.editIconBtn, { marginLeft: 6 }]}
-                disabled={isSyncingWatch}
-              >
-                {isSyncingWatch ? (
-                  <ActivityIndicator size="small" color="#007AFF" />
-                ) : (
-                  <Ionicons name="watch-outline" size={15} color="#007AFF" />
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.statsGrid}>
-            <View style={styles.statColumn}>
-              <Text style={styles.statNumber}>{stepsCompleted.toLocaleString()}</Text>
-              <Text style={styles.statLabel}>Steps Taken</Text>
-            </View>
-
-            <View style={styles.statDivider} />
-
-            <View style={styles.statColumn}>
-              <Text style={styles.statNumber}>{dailyStepsTarget.toLocaleString()}</Text>
-              <Text style={styles.statLabel}>Daily Goal</Text>
-            </View>
-
-            <View style={[styles.completionBadge, { backgroundColor: '#EBF8FF' }]}>
-              <Text style={[styles.completionText, { color: '#007AFF' }]}>
-                {((stepsCompleted / (dailyStepsTarget || 1)) * 100).toFixed(0)}%
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.progressBarTrack}>
-            <View style={[styles.progressBarFill, { width: `${activityPercentages.steps}%`, backgroundColor: '#007AFF' }]} />
-          </View>
-        </View>
+        {/* Steps Tracker Card */}
+        <ActivityCard
+          title="Steps Tracker"
+          iconName="footsteps-outline"
+          themeColor="#007AFF"
+          badgeBgColor="#EBF8FF"
+          currentValue={stepsCompleted}
+          targetValue={dailyStepsTarget}
+          currentLabel="Steps Taken"
+          targetLabel="Daily Goal"
+          isSyncing={isSyncingWatch}
+          onEditPress={() => {
+            setStepsInput(stepsCompleted.toString());
+            setIsStepsModalOpen(true);
+          }}
+          onSyncPress={handleAppleWatchSync}
+          formatValue={(val) => val.toLocaleString()}
+        />
       </ScrollView>
 
       <SetGoalsModal isVisible={isGoalsModalOpen} onClose={() => setIsGoalsModalOpen(false)} />
@@ -265,7 +176,14 @@ export default function ProgressScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Set Active Burned Calories</Text>
             <Text style={styles.modalSubtitle}>Log burned calories for {targetDateString}</Text>
-            <TextInput style={styles.modalInput} keyboardType="numeric" placeholder="e.g. 450" value={activeCalInput} onChangeText={setActiveCalInput} autoFocus />
+            <TextInput
+              style={styles.modalInput}
+              keyboardType="numeric"
+              placeholder="e.g. 450"
+              value={activeCalInput}
+              onChangeText={setActiveCalInput}
+              autoFocus
+            />
             <View style={styles.modalActionRow}>
               <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setIsActiveCalModalOpen(false)}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -284,9 +202,16 @@ export default function ProgressScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Set Daily Steps</Text>
             <Text style={styles.modalSubtitle}>Log total steps for {targetDateString}</Text>
-            <TextInput style={styles.modalInput} keyboardType="numeric" placeholder="e.g. 10000" value={stepsInput} onChangeText={setStepsInput} autoFocus />
+            <TextInput
+              style={styles.modalInput}
+              keyboardType="numeric"
+              placeholder="e.g. 10000"
+              value={stepsInput}
+              onChangeText={setStepsInput}
+              autoFocus
+            />
             <View style={styles.modalActionRow}>
-              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setIsActiveCalModalOpen(false)}>
+              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setIsStepsModalOpen(false)}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.modalButton, styles.saveButton]} onPress={handleSaveSteps}>
@@ -309,104 +234,6 @@ const styles = StyleSheet.create({
   subTitle: { fontSize: 13, color: '#8E8E93', marginTop: 2, fontWeight: '500' },
   adjustGoalsButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E1F0FF', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   adjustGoalsText: { fontSize: 13, fontWeight: '600', color: '#007AFF', marginLeft: 4 },
-
-  activityCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  activityHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  activityTitleGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  activityIconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activityTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#1C1C1E',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  editIconBtn: {
-    padding: 6,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 10,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9F9FB',
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 14,
-    position: 'relative',
-  },
-  statColumn: {
-    flex: 1,
-  },
-  statNumber: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1C1C1E',
-  },
-  statUnit: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#8E8E93',
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#8E8E93',
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: '#E5E5EA',
-    marginRight: 16,
-  },
-  completionBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  completionText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  progressBarTrack: {
-    height: 8,
-    backgroundColor: '#E5E5EA',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { width: '82%', backgroundColor: '#FFFFFF', borderRadius: 18, padding: 20, alignItems: 'center' },
