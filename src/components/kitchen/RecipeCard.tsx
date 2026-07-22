@@ -1,6 +1,7 @@
+import { getEmojiForIngredient } from '@/services/emojiService';
 import { Recipe } from '@/types/RecipeTypes';
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface RecipeCardProps {
@@ -10,13 +11,21 @@ interface RecipeCardProps {
 }
 
 export const RecipeCard: React.FC<RecipeCardProps> = ({ item, onPress, onDelete }) => {
+    // Resolve food emoji dynamically based on recipe name
+    const emoji = useMemo(() => getEmojiForIngredient(item.name), [item.name]);
+
     return (
         <TouchableOpacity
             style={styles.card}
             activeOpacity={0.7}
             onPress={() => onPress(item)}
         >
-            {/* 1. Title + Subtitle */}
+            {/* 1. Left Emoji Square Container */}
+            <View style={styles.emojiContainer}>
+                <Text style={styles.emojiText}>{emoji}</Text>
+            </View>
+
+            {/* 2. Title + Subtitle */}
             <View style={styles.infoContainer}>
                 <Text style={styles.title} numberOfLines={1}>
                     {item.name}
@@ -25,7 +34,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ item, onPress, onDelete 
                     {item.ingredients?.length || 0} ingredient{item.ingredients?.length === 1 ? '' : 's'}
                 </Text>
 
-                {/* 2. Matching Macro Badges */}
+                {/* 3. Matching Macro Badges */}
                 <View style={styles.macroRow}>
                     {/* Calories (Orange) */}
                     <View style={[styles.badge, styles.calBadge]}>
@@ -50,7 +59,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ item, onPress, onDelete 
                 </View>
             </View>
 
-            {/* 3. Soft-Tinted Delete Action Button */}
+            {/* 4. Soft-Tinted Delete Action Button */}
             <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={(e) => {
@@ -81,6 +90,19 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.04,
         shadowRadius: 10,
         elevation: 2,
+    },
+    // Left Emoji Square Tile
+    emojiContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        backgroundColor: '#F8F9FA',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    emojiText: {
+        fontSize: 24,
     },
     infoContainer: {
         flex: 1,
