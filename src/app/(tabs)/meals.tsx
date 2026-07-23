@@ -112,7 +112,7 @@ export default function DailyMealsScreen() {
       {/* Meals Construction List Matrix */}
       <FlatList
         data={currentDayMeals}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => item.id ? `${item.id}-${index}` : `${item.name}-${index}`}
         contentContainerStyle={styles.listPadding}
         renderItem={({ item }) => (
           <TouchableOpacity

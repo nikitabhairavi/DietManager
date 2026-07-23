@@ -106,7 +106,8 @@ export const LogMealModal: React.FC<LogMealModalProps> = ({
     // Combine recipes and individual ingredients into a unified searchable selection pool
     const selectableCatalog = useMemo(() => {
         const recipeItems = recipes.map((r) => ({
-            id: r.id,
+            id: `recipe-${r.id}`, // Guaranteed unique key for FlatList
+            originalId: r.id,     // Keep raw ID for recipeId persistence
             name: r.name,
             calories: r.totalCalories,
             protein: r.totalProtein,
@@ -115,7 +116,8 @@ export const LogMealModal: React.FC<LogMealModalProps> = ({
         }));
 
         const ingredientItems = ingredients.map((i) => ({
-            id: i.id,
+            id: `ingredient-${i.id}`, // Guaranteed unique key for FlatList
+            originalId: i.id,         // Keep raw ID for recipeId persistence
             name: `${i.name} (${i.quantityPerUnit})`,
             calories: i.caloriesPerUnit,
             protein: i.proteinPerUnit,
