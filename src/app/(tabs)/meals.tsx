@@ -1,3 +1,4 @@
+import { FoodImage } from '@/components/kitchen/FoodImage';
 import { useMealsStore } from '@/data/dataStores/meals/useMealsStore';
 import { LogMealModal } from '@/modals/LogMealsModal';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,7 +10,7 @@ export default function DailyMealsScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
 
-  // Hook into your live Zustand day-tracking store slice
+  // Hook into live Zustand day-tracking store slice
   const mealsByDay = useMealsStore((state) => state.mealsByDay);
   const removeMeal = useMealsStore((state) => state.removeMeal);
 
@@ -23,7 +24,7 @@ export default function DailyMealsScreen() {
 
   const targetDateString = useMemo(() => formatDateString(selectedDate), [selectedDate]);
 
-  // O(1) live lookup pulling directly from the structural dictionary array
+  // O(1) live lookup pulling directly from structural dictionary array
   const currentDayMeals = useMemo(() => {
     return mealsByDay[targetDateString] || [];
   }, [mealsByDay, targetDateString]);
@@ -53,12 +54,36 @@ export default function DailyMealsScreen() {
         onDateSelect={(date) => setSelectedDate(date)}
       />
 
-      {/* Dynamic Summary Micro Dashboard */}
+      {/* Dynamic Summary Micro Dashboard (Color Bullet Strip) */}
       {currentDayMeals.length > 0 && (
         <View style={styles.daySummaryDashboard}>
-          <Text style={styles.summaryText}>
-            Logged: <Text style={styles.summaryValue}>{dailyTotals.calories.toFixed(0)} kcal</Text> | P: <Text style={styles.summaryValue}>{dailyTotals.protein.toFixed(1)}g</Text> | F: <Text style={styles.summaryValue}>{dailyTotals.fiber.toFixed(1)}g</Text>
-          </Text>
+          <View style={styles.summaryItem}>
+            <View style={[styles.bullet, { backgroundColor: '#007AFF' }]} />
+            <Text style={styles.summaryLabel}>Cal:</Text>
+            <Text style={[styles.summaryValue, { color: '#007AFF' }]}>
+              {dailyTotals.calories.toFixed(0)} kcal
+            </Text>
+          </View>
+
+          <View style={styles.summaryDivider} />
+
+          <View style={styles.summaryItem}>
+            <View style={[styles.bullet, { backgroundColor: '#34C759' }]} />
+            <Text style={styles.summaryLabel}>Protein:</Text>
+            <Text style={[styles.summaryValue, { color: '#34C759' }]}>
+              {dailyTotals.protein.toFixed(1)}g
+            </Text>
+          </View>
+
+          <View style={styles.summaryDivider} />
+
+          <View style={styles.summaryItem}>
+            <View style={[styles.bullet, { backgroundColor: '#AF52DE' }]} />
+            <Text style={styles.summaryLabel}>Fiber:</Text>
+            <Text style={[styles.summaryValue, { color: '#AF52DE' }]}>
+              {dailyTotals.fiber.toFixed(1)}g
+            </Text>
+          </View>
         </View>
       )}
 
@@ -74,18 +99,28 @@ export default function DailyMealsScreen() {
         contentContainerStyle={styles.listPadding}
         renderItem={({ item }) => (
           <View style={styles.mealCard}>
+            {/* Meal Ingredient/Dish Thumbnail Image */}
+            <FoodImage name={item.name} size={48} />
+
             <View style={styles.mealMeta}>
               <View style={styles.mealHeaderRow}>
-                <Text style={styles.mealName}>{item.name}</Text>
+                <Text style={styles.mealName} numberOfLines={1}>{item.name}</Text>
                 <Text style={styles.portionBadge}>x{item.portionSize}</Text>
               </View>
-              <Text style={styles.mealMacros}>
-                {item.totalCalories} kcal | P: {item.totalProtein}g | F: {item.totalFiber}g
-              </Text>
+
+              {/* Highlighted Macro Bullets */}
+              <View style={styles.cardMacroRow}>
+                <Text style={styles.calText}>{item.totalCalories} kcal</Text>
+                <Text style={styles.macroDot}>•</Text>
+                <Text style={styles.proteinText}>P: {item.totalProtein}g</Text>
+                <Text style={styles.macroDot}>•</Text>
+                <Text style={styles.fiberText}>F: {item.totalFiber}g</Text>
+              </View>
+
               <Text style={styles.logTimeStr}>{item.loggedAtTime}</Text>
             </View>
 
-            {/* Quick-action single entry inline deletion removal trigger */}
+            {/* Quick-action single entry inline deletion */}
             <TouchableOpacity
               style={styles.deleteButton}
               onPress={() => removeMeal(targetDateString, item.id)}
@@ -97,6 +132,7 @@ export default function DailyMealsScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
+            <Ionicons name="restaurant-outline" size={48} color="#C7C7CC" />
             <Text style={styles.emptyText}>No food logs entered for this date.</Text>
           </View>
         }
@@ -126,21 +162,52 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F2F2F7',
   },
+
+  /* Enhanced Summary Dashboard Strip */
   daySummaryDashboard: {
-    backgroundColor: '#E5E5EA',
-    paddingVertical: 8,
-    paddingHorizontal: 20,
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  summaryItem: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  summaryText: {
-    fontSize: 14,
-    color: '#48484A',
-    fontWeight: '500',
+  bullet: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    marginRight: 5,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: '#8E8E93',
+    fontWeight: '600',
+    marginRight: 3,
   },
   summaryValue: {
-    color: '#007AFF',
+    fontSize: 13,
     fontWeight: '700',
   },
+  summaryDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: '#E5E5EA',
+  },
+
   sectionHeader: {
     paddingHorizontal: 20,
     paddingTop: 16,
@@ -153,20 +220,21 @@ const styles = StyleSheet.create({
   },
   listPadding: {
     paddingHorizontal: 20,
-    paddingBottom: 90, // Room so elements don't drop behind the floating FAB layout
+    paddingBottom: 90,
   },
   mealCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 14,
+    padding: 12,
     marginTop: 10,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowRadius: 3,
     elevation: 1,
+    gap: 12,
   },
   mealMeta: {
     flex: 1,
@@ -175,12 +243,13 @@ const styles = StyleSheet.create({
   mealHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   mealName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1C1C1E',
+    flexShrink: 1,
   },
   portionBadge: {
     fontSize: 12,
@@ -193,18 +262,41 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     overflow: 'hidden',
   },
-  mealMacros: {
-    fontSize: 14,
-    color: '#666666',
+
+  /* Card Macro Bullet Row */
+  cardMacroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
   },
+  calText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  proteinText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#34C759',
+  },
+  fiberText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#AF52DE',
+  },
+  macroDot: {
+    fontSize: 10,
+    color: '#C7C7CC',
+    marginHorizontal: 5,
+  },
+
   logTimeStr: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#8E8E93',
-    marginTop: 4,
+    marginTop: 3,
   },
   deleteButton: {
     padding: 8,
-    marginLeft: 10,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -213,8 +305,9 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#8E8E93',
-    fontSize: 16,
+    fontSize: 15,
     textAlign: 'center',
+    marginTop: 8,
   },
   fab: {
     position: 'absolute',
