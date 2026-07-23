@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { CalendarStrip } from '../../components/meals/calendarStrip';
+import { CalendarStrip } from '../../components/Calendar/calendarStrip';
 import { ActivityCard } from '../../components/progress/ActivityCard';
 import { NutritionRings } from '../../components/progress/NutritionRings';
 

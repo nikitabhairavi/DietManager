@@ -3,7 +3,7 @@ import { LogMealModal } from '@/modals/LogMealsModal';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { CalendarStrip } from '../../components/meals/calendarStrip';
+import { CalendarStrip } from '../../components/Calendar/calendarStrip';
 
 export default function DailyMealsScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());

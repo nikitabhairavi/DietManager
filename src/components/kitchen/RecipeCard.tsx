@@ -1,8 +1,8 @@
-import { getEmojiForIngredient } from '@/services/emojiService';
 import { Recipe } from '@/types/RecipeTypes';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo } from 'react';
+import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FoodImage } from './FoodImage';
 
 interface RecipeCardProps {
     item: Recipe;
@@ -11,19 +11,14 @@ interface RecipeCardProps {
 }
 
 export const RecipeCard: React.FC<RecipeCardProps> = ({ item, onPress, onDelete }) => {
-    // Resolve food emoji dynamically based on recipe name
-    const emoji = useMemo(() => getEmojiForIngredient(item.name), [item.name]);
-
     return (
         <TouchableOpacity
             style={styles.card}
             activeOpacity={0.7}
             onPress={() => onPress(item)}
         >
-            {/* 1. Left Emoji Square Container */}
-            <View style={styles.emojiContainer}>
-                <Text style={styles.emojiText}>{emoji}</Text>
-            </View>
+            {/* 1. Dynamic CDN Food Image with Gray Placeholder Fallback */}
+            <FoodImage name={item.name} size={48} />
 
             {/* 2. Title + Subtitle */}
             <View style={styles.infoContainer}>
@@ -84,25 +79,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 14,
         marginBottom: 12,
-        // Soft Apple-style shadow and card depth
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.04,
         shadowRadius: 10,
         elevation: 2,
-    },
-    // Left Emoji Square Tile
-    emojiContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 12,
-        backgroundColor: '#F8F9FA',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 12,
-    },
-    emojiText: {
-        fontSize: 24,
+        gap: 12,
     },
     infoContainer: {
         flex: 1,
@@ -133,21 +115,18 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '700',
     },
-    // Calories (Orange)
     calBadge: {
         backgroundColor: '#FFF4E5',
     },
     calText: {
         color: '#FF9500',
     },
-    // Protein (Blue)
     proteinBadge: {
         backgroundColor: '#EBF5FF',
     },
     proteinText: {
         color: '#007AFF',
     },
-    // Fiber (Green)
     fiberBadge: {
         backgroundColor: '#EAF8E6',
     },
@@ -158,6 +137,6 @@ const styles = StyleSheet.create({
         padding: 8,
         borderRadius: 8,
         backgroundColor: '#FFF2F2',
-        marginLeft: 12,
+        marginLeft: 4,
     },
 });
