@@ -1,7 +1,5 @@
 import { useMealsStore } from '@/data/dataStores/meals/useMealsStore';
 import { useGoalsStore } from '@/data/dataStores/useGoalStore';
-import { SetGoalsModal } from '@/modals/SetGoalsModal';
-import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {
   Modal,
@@ -19,7 +17,6 @@ import { NutritionRings } from '../../components/progress/NutritionRings';
 
 export default function ProgressScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [isGoalsModalOpen, setIsGoalsModalOpen] = useState(false);
 
   // Modals for manual entries
   const [isActiveCalModalOpen, setIsActiveCalModalOpen] = useState(false);
@@ -70,10 +67,6 @@ export default function ProgressScreen() {
     );
   }, [mealsByDay, targetDateString]);
 
-  const displayTitle = useMemo(() => {
-    return selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  }, [selectedDate]);
-
   const handleSaveActiveCalories = () => {
     const parsedValue = parseFloat(activeCalInput);
     if (!isNaN(parsedValue) && setActiveCaloriesForDate) {
@@ -104,21 +97,6 @@ export default function ProgressScreen() {
       <CalendarStrip selectedDate={selectedDate} onDateSelect={(date) => setSelectedDate(date)} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerRow}>
-          <View style={styles.titleWrapper}>
-            <Text style={styles.title}>Targets Progression</Text>
-            <Text style={styles.subTitle}>{displayTitle}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.adjustGoalsButton}
-            activeOpacity={0.7}
-            onPress={() => setIsGoalsModalOpen(true)}
-          >
-            <Ionicons name="options-outline" size={16} color="#007AFF" />
-            <Text style={styles.adjustGoalsText}>Set Goals</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Rings */}
         <NutritionRings
           calories={dailyTotals.calories}
@@ -167,8 +145,6 @@ export default function ProgressScreen() {
           formatValue={(val) => val.toLocaleString()}
         />
       </ScrollView>
-
-      <SetGoalsModal isVisible={isGoalsModalOpen} onClose={() => setIsGoalsModalOpen(false)} />
 
       {/* Active Calories Modal */}
       <Modal visible={isActiveCalModalOpen} transparent animationType="fade" onRequestClose={() => setIsActiveCalModalOpen(false)}>
@@ -228,12 +204,6 @@ export default function ProgressScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F2F7' },
   scrollContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  titleWrapper: { flex: 1, marginRight: 8 },
-  title: { fontSize: 22, fontWeight: '700', color: '#1C1C1E' },
-  subTitle: { fontSize: 13, color: '#8E8E93', marginTop: 2, fontWeight: '500' },
-  adjustGoalsButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E1F0FF', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  adjustGoalsText: { fontSize: 13, fontWeight: '600', color: '#007AFF', marginLeft: 4 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { width: '82%', backgroundColor: '#FFFFFF', borderRadius: 18, padding: 20, alignItems: 'center' },

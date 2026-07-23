@@ -6,10 +6,10 @@ interface CalendarStripProps {
     onDateSelect: (date: Date) => void;
 }
 
-const ITEM_WIDTH = 52;
-const ITEM_MARGIN = 5;
-const FULL_ITEM_SIZE = ITEM_WIDTH + ITEM_MARGIN * 2; // 62px
 const SCREEN_WIDTH = Dimensions.get('window').width;
+const ITEM_WIDTH = 48;
+const ITEM_MARGIN = 4;
+const FULL_ITEM_SIZE = ITEM_WIDTH + ITEM_MARGIN * 2; // 56px
 
 export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDateSelect }) => {
     const flatListRef = useRef<FlatList<Date>>(null);
@@ -26,10 +26,15 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
 
     const today = useMemo(() => new Date(), []);
 
-    // Generate 14 days surrounding today
+    // Month & Year header text (e.g., "April 2026")
+    const headerTitle = useMemo(() => {
+        return selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }, [selectedDate]);
+
+    // Generate 14 days surrounding selected/current date
     const daysArray = useMemo(() => {
         const dates = [];
-        for (let i = -7; i <= 6; i++) {
+        for (let i = -7; i <= 7; i++) {
             const d = new Date(today);
             d.setDate(today.getDate() + i);
             dates.push(d);
@@ -61,7 +66,11 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
     }, [selectedIndex]);
 
     return (
-        <View style={styles.stripWrapper}>
+        <View style={styles.curvedBannerContainer}>
+            {/* Header Month / Year */}
+            <Text style={styles.monthHeaderText}>{headerTitle}</Text>
+
+            {/* Horizontal Day Selector */}
             <FlatList
                 ref={flatListRef}
                 data={daysArray}
@@ -93,45 +102,26 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
                     const isSelected = isSameDay(item, selectedDate);
                     const isTodayItem = isSameDay(item, today);
 
-                    const dayName = isTodayItem
-                        ? 'TODAY'
-                        : item.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+                    // 2-Letter short format matching screenshot: Su, Mo, Tu, We, Th, Fr, Sa
+                    const weekday = item.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 2);
                     const dayNumber = item.getDate();
 
                     return (
                         <TouchableOpacity
-                            style={[
-                                styles.dayCard,
-                                isTodayItem && styles.todayCard,
-                                isSelected && styles.selectedDayCard,
-                            ]}
+                            style={[styles.dayColumn, isSelected && styles.selectedDayColumn]}
                             onPress={() => onDateSelect(item)}
-                            activeOpacity={0.8}
+                            activeOpacity={0.7}
                         >
-                            {/* Today Accent Dot */}
-                            {isTodayItem && (
-                                <View style={[styles.todayDot, isSelected && styles.selectedTodayDot]} />
-                            )}
-
-                            <Text
-                                style={[
-                                    styles.dayNameText,
-                                    isTodayItem && styles.todayTypeText,
-                                    isSelected && styles.selectedTypeText,
-                                ]}
-                            >
-                                {dayName}
+                            <Text style={[styles.weekdayText, isSelected && styles.selectedText]}>
+                                {weekday}
                             </Text>
 
-                            <Text
-                                style={[
-                                    styles.dayNumberText,
-                                    isTodayItem && styles.todayNumberText,
-                                    isSelected && styles.selectedTypeText,
-                                ]}
-                            >
+                            <Text style={[styles.dayNumberText, isSelected && styles.selectedText]}>
                                 {dayNumber}
                             </Text>
+
+                            {/* Optional Today indicator dot */}
+                            {isTodayItem && <View style={styles.todayDot} />}
                         </TouchableOpacity>
                     );
                 }}
@@ -141,74 +131,61 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
 };
 
 const styles = StyleSheet.create({
-    stripWrapper: {
-        backgroundColor: '#FFFFFF',
-        paddingVertical: 14,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.03,
-        shadowRadius: 6,
-        elevation: 2,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: '#E5E5EA',
+    // Scaled container creating the downward curved arc
+    curvedBannerContainer: {
+        backgroundColor: '#000000', // Deep black theme replacing the green
+        paddingTop: 16,
+        paddingBottom: 28,
+        width: SCREEN_WIDTH * 1.2, // Expanded past screen boundaries to yield arc curvature
+        alignSelf: 'center',
+        borderBottomLeftRadius: SCREEN_WIDTH * 0.6,
+        borderBottomRightRadius: SCREEN_WIDTH * 0.6,
+        alignItems: 'center',
+        overflow: 'hidden',
+    },
+    monthHeaderText: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        alignSelf: 'flex-start',
+        marginLeft: SCREEN_WIDTH * 0.16 + 16, // Aligns header gracefully over screen edge
+        marginBottom: 16,
+        letterSpacing: -0.3,
     },
     listPadding: {
-        paddingHorizontal: SCREEN_WIDTH / 2 - FULL_ITEM_SIZE / 2,
+        paddingHorizontal: SCREEN_WIDTH * 0.6 - FULL_ITEM_SIZE / 2,
     },
-    dayCard: {
+    dayColumn: {
         width: ITEM_WIDTH,
-        height: 68,
-        borderRadius: 16,
-        backgroundColor: '#F2F2F7',
         alignItems: 'center',
         justifyContent: 'center',
         marginHorizontal: ITEM_MARGIN,
         paddingVertical: 6,
+        borderRadius: 12,
     },
-    todayCard: {
-        backgroundColor: '#EBF5FF',
-        borderWidth: 1,
-        borderColor: '#B3D7FF',
+    selectedDayColumn: {
+        backgroundColor: '#1C1C1E', // Elevated dark tile indicator for active selection
     },
-    selectedDayCard: {
-        backgroundColor: '#007AFF',
-        borderColor: '#007AFF',
-        shadowColor: '#007AFF',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 6,
-        elevation: 4,
+    weekdayText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#8E8E93',
+        marginBottom: 6,
+    },
+    dayNumberText: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#E5E5EA',
+    },
+    selectedText: {
+        color: '#FFFFFF',
+        fontWeight: '800',
     },
     todayDot: {
         width: 4,
         height: 4,
         borderRadius: 2,
-        backgroundColor: '#007AFF',
-        marginBottom: 2,
-    },
-    selectedTodayDot: {
-        backgroundColor: '#FFFFFF',
-    },
-    dayNameText: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: '#8E8E93',
-        letterSpacing: 0.2,
-        marginBottom: 2,
-    },
-    todayTypeText: {
-        color: '#007AFF',
-    },
-    dayNumberText: {
-        fontSize: 19,
-        fontWeight: '800',
-        color: '#1C1C1E',
-        letterSpacing: -0.3,
-    },
-    todayNumberText: {
-        color: '#007AFF',
-    },
-    selectedTypeText: {
-        color: '#FFFFFF',
+        backgroundColor: '#0A84FF',
+        marginTop: 4,
     },
 });

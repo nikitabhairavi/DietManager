@@ -1,9 +1,11 @@
-// app/(tabs)/account.tsx
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function AccountScreen() {
+    const router = useRouter();
+
     return (
         <View style={styles.container}>
             <View style={styles.profileHeader}>
@@ -12,6 +14,16 @@ export default function AccountScreen() {
             </View>
 
             <View style={styles.section}>
+                {/* Navigates to Set Goals Screen */}
+                <TouchableOpacity
+                    style={styles.row}
+                    activeOpacity={0.7}
+                    onPress={() => router.push('/goals/SetGoalsScreen')}
+                >
+                    <Ionicons name="options-outline" size={20} color="#007AFF" />
+                    <Text style={[styles.rowText, { color: '#007AFF' }]}>Set Goals</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity style={styles.row}>
                     <Ionicons name="settings-outline" size={20} color="#1C1C1E" />
                     <Text style={styles.rowText}>Preferences</Text>
