@@ -1,11 +1,11 @@
-import { useMealsStore } from '@/data/dataStores/meals/useMealsStore';
+import { FoodImage } from '@/components/kitchen/FoodImage';
+import { useIngredientsStore } from '@/data/dataStores/ingredientsStore/useIngredientStore';
+import { LoggedMeal, useMealsStore } from '@/data/dataStores/meals/useMealsStore';
 import { useRecipeStore } from '@/data/dataStores/recipeStore/useRecipeStore';
-import { Recipe } from '@/types/RecipeTypes';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     FlatList,
-    Keyboard,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -13,204 +13,292 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    TouchableWithoutFeedback,
     View,
 } from 'react-native';
 
 interface LogMealModalProps {
     isVisible: boolean;
     onClose: () => void;
-    targetDateString: string; // The formatted YYYY-MM-DD date key from the calendar strip
+    targetDateString: string;
+    mealToEdit?: LoggedMeal | null;
 }
 
-export const LogMealModal: React.FC<LogMealModalProps> = ({ isVisible, onClose, targetDateString }) => {
+/**
+ * Parses user input strings like "1/2", "3/4", "1 1/2", or "1.5" into a numeric decimal float.
+ */
+const parseQuantity = (value: string | number): number => {
+    if (typeof value === 'number') return isNaN(value) ? 0 : value;
+    if (!value || typeof value !== 'string') return 0;
+
+    const trimmed = value.trim();
+    if (!trimmed) return 0;
+
+    // Handle mixed numbers like "1 1/2"
+    if (trimmed.includes(' ')) {
+        const parts = trimmed.split(/\s+/);
+        if (parts.length === 2) {
+            const whole = parseFloat(parts[0]);
+            const frac = parseQuantity(parts[1]);
+            return (isNaN(whole) ? 0 : whole) + frac;
+        }
+    }
+
+    // Handle standard fractions like "1/2" or "3/4"
+    if (trimmed.includes('/')) {
+        const [numerator, denominator] = trimmed.split('/');
+        const num = parseFloat(numerator);
+        const den = parseFloat(denominator);
+        if (!isNaN(num) && !isNaN(den) && den !== 0) {
+            return num / den;
+        }
+    }
+
+    const parsed = parseFloat(trimmed);
+    return isNaN(parsed) ? 0 : parsed;
+};
+
+export const LogMealModal: React.FC<LogMealModalProps> = ({
+    isVisible,
+    onClose,
+    targetDateString,
+    mealToEdit,
+}) => {
     const recipes = useRecipeStore((state) => state.recipes);
+    const ingredients = useIngredientsStore((state) => state.ingredients);
     const logMeal = useMealsStore((state) => state.logMeal);
+    const removeMeal = useMealsStore((state) => state.removeMeal);
 
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-    const [portionSize, setPortionSize] = useState('1.0'); // Default to 1 full standard serving
+    const [selectedItem, setSelectedItem] = useState<{
+        id: string;
+        name: string;
+        calories: number;
+        protein: number;
+        fiber: number;
+    } | null>(null);
+
+    const [rawPortionInput, setRawPortionInput] = useState('1');
     const [showDropdown, setShowDropdown] = useState(false);
 
-    // Filter available kitchen recipes dynamically matching user text query
-    const filteredRecipes = useMemo(() => {
-        if (!searchQuery.trim()) return recipes;
-        return recipes.filter((rec) =>
-            rec.name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [recipes, searchQuery]);
+    // Sync state when modal opens or when editing an existing meal
+    useEffect(() => {
+        if (isVisible) {
+            if (mealToEdit) {
+                setSelectedItem({
+                    id: mealToEdit.recipeId,
+                    name: mealToEdit.name,
+                    // Re-derive base macros by dividing out the existing portion size
+                    calories: mealToEdit.totalCalories / (mealToEdit.portionSize || 1),
+                    protein: mealToEdit.totalProtein / (mealToEdit.portionSize || 1),
+                    fiber: mealToEdit.totalFiber / (mealToEdit.portionSize || 1),
+                });
+                setRawPortionInput(mealToEdit.portionSize.toString());
+                setSearchQuery(mealToEdit.name);
+            } else {
+                setSelectedItem(null);
+                setRawPortionInput('1');
+                setSearchQuery('');
+            }
+            setShowDropdown(false);
+        }
+    }, [isVisible, mealToEdit]);
 
-    const handleSelectRecipe = (recipe: Recipe) => {
-        setSelectedRecipe(recipe);
-        setSearchQuery(recipe.name);
+    // Combine recipes and individual ingredients into a unified searchable selection pool
+    const selectableCatalog = useMemo(() => {
+        const recipeItems = recipes.map((r) => ({
+            id: r.id,
+            name: r.name,
+            calories: r.totalCalories,
+            protein: r.totalProtein,
+            fiber: r.totalFiber,
+            type: 'Recipe' as const,
+        }));
+
+        const ingredientItems = ingredients.map((i) => ({
+            id: i.id,
+            name: `${i.name} (${i.quantityPerUnit})`,
+            calories: i.caloriesPerUnit,
+            protein: i.proteinPerUnit,
+            fiber: i.fiberPerUnit,
+            type: 'Ingredient' as const,
+        }));
+
+        return [...recipeItems, ...ingredientItems];
+    }, [recipes, ingredients]);
+
+    const filteredCatalog = useMemo(() => {
+        if (!searchQuery.trim()) return [];
+        return selectableCatalog.filter((item) =>
+            item.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [searchQuery, selectableCatalog]);
+
+    // Live calculation of macros based on fraction/decimal portion input
+    const numericPortion = parseQuantity(rawPortionInput);
+    const previewMacros = useMemo(() => {
+        if (!selectedItem) return { calories: 0, protein: 0, fiber: 0 };
+        return {
+            calories: selectedItem.calories * numericPortion,
+            protein: selectedItem.protein * numericPortion,
+            fiber: selectedItem.fiber * numericPortion,
+        };
+    }, [selectedItem, numericPortion]);
+
+    const handleSelectCatalogItem = (item: (typeof selectableCatalog)[0]) => {
+        setSelectedItem(item);
+        setSearchQuery(item.name);
         setShowDropdown(false);
-        Keyboard.dismiss();
     };
 
-    const handleLogMealSubmit = () => {
-        if (!selectedRecipe) {
-            alert('Please select a recipe first.');
+    const handleSaveLog = () => {
+        if (!selectedItem) {
+            alert('Please select a recipe or ingredient to log.');
             return;
         }
 
-        const parsedPortion = parseFloat(portionSize);
-        if (isNaN(parsedPortion) || parsedPortion <= 0) {
-            alert('Please enter a valid portion size greater than 0.');
+        if (numericPortion <= 0) {
+            alert('Portion size must be greater than zero.');
             return;
         }
 
-        // Capture present hours and minutes for chronological timeline tracking
         const now = new Date();
-        const timeStr = now.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true,
-        });
+        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        // Commit to daily storage tracking matrix
+        // If editing, remove the old entry first before logging the updated one
+        if (mealToEdit) {
+            removeMeal(targetDateString, mealToEdit.id);
+        }
+
         logMeal(
             targetDateString,
             {
-                recipeId: selectedRecipe.id,
-                name: selectedRecipe.name,
-                portionSize: parsedPortion,
-                loggedAtTime: timeStr,
+                recipeId: selectedItem.id,
+                name: selectedItem.name,
+                portionSize: numericPortion,
+                loggedAtTime: mealToEdit ? mealToEdit.loggedAtTime : timeString,
             },
             {
-                calories: selectedRecipe.totalCalories,
-                protein: selectedRecipe.totalProtein,
-                fiber: selectedRecipe.totalFiber,
+                calories: selectedItem.calories,
+                protein: selectedItem.protein,
+                fiber: selectedItem.fiber,
             }
         );
 
-        // Reset Sandbox Context Shell
-        setSelectedRecipe(null);
-        setSearchQuery('');
-        setPortionSize('1.0');
         onClose();
     };
 
     return (
         <Modal visible={isVisible} animationType="slide" transparent onRequestClose={onClose}>
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <View style={styles.modalOverlay}>
-                    <KeyboardAvoidingView
-                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        style={styles.modalContainer}
-                    >
-                        <Text style={styles.modalTitle}>Log Kitchen Meal</Text>
+            <View style={styles.modalOverlay}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.keyboardContainer}
+                >
+                    <View style={styles.modalContainer}>
+                        {/* Modal Header */}
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>
+                                {mealToEdit ? 'Edit Logged Meal' : 'Log Food Entry'}
+                            </Text>
+                            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                <Ionicons name="close" size={24} color="#1C1C1E" />
+                            </TouchableOpacity>
+                        </View>
 
-                        {/* Step 1: Search and Select Recipe Input */}
-                        <Text style={styles.inputLabel}>Choose Recipe</Text>
-                        <View style={styles.searchBarWrapper}>
+                        {/* Search & Select Field */}
+                        <View style={styles.searchBlock}>
+                            <Text style={styles.sectionLabel}>Search Recipe or Ingredient</Text>
                             <TextInput
-                                style={[styles.textInput, { marginBottom: 0, flex: 1, paddingRight: 40 }]}
-                                placeholder="Type to search your recipes..."
-                                placeholderTextColor="#999"
+                                style={styles.textInput}
                                 value={searchQuery}
                                 onChangeText={(text) => {
                                     setSearchQuery(text);
-                                    setSelectedRecipe(null); // Clear item lock if typing new queries
-                                    setShowDropdown(true);
+                                    setShowDropdown(text.trim().length > 0);
+                                    if (selectedItem && text !== selectedItem.name) {
+                                        setSelectedItem(null); // Reset selection if typing a new search
+                                    }
                                 }}
-                                onFocus={() => setShowDropdown(true)}
+                                placeholder="Type to search catalog..."
+                                placeholderTextColor="#8E8E93"
                             />
-                            {searchQuery.length > 0 && (
-                                <TouchableOpacity
-                                    style={styles.clearInputButton}
-                                    onPress={() => {
-                                        setSearchQuery('');
-                                        setSelectedRecipe(null);
-                                        setShowDropdown(false);
-                                    }}
-                                >
-                                    <Ionicons name="close-circle" size={18} color="#8E8E93" />
-                                </TouchableOpacity>
+
+                            {showDropdown && filteredCatalog.length > 0 && (
+                                <View style={styles.searchDropdownContainer}>
+                                    <FlatList
+                                        data={filteredCatalog}
+                                        keyExtractor={(item) => item.id}
+                                        style={{ maxHeight: 200 }}
+                                        nestedScrollEnabled
+                                        keyboardShouldPersistTaps="handled"
+                                        renderItem={({ item }) => (
+                                            <TouchableOpacity
+                                                style={styles.dropdownOptionRow}
+                                                onPress={() => handleSelectCatalogItem(item)}
+                                            >
+                                                <View style={styles.dropdownLeftContainer}>
+                                                    <FoodImage name={item.name} size={28} />
+                                                    <Text style={styles.dropdownOptionText} numberOfLines={1}>
+                                                        {item.name}
+                                                    </Text>
+                                                </View>
+                                                <Text style={styles.dropdownOptionSubText}>
+                                                    {item.calories.toFixed(0)} kcal
+                                                </Text>
+                                            </TouchableOpacity>
+                                        )}
+                                    />
+                                </View>
                             )}
                         </View>
 
-                        {/* Filtered Search Selection Popup Dropdown */}
-                        {showDropdown && (
-                            <View style={styles.dropdownListContainer}>
-                                <FlatList
-                                    data={filteredRecipes}
-                                    keyExtractor={(item) => item.id}
-                                    style={{ maxHeight: 140 }}
-                                    nestedScrollEnabled
-                                    keyboardShouldPersistTaps="handled"
-                                    renderItem={({ item }) => (
-                                        <TouchableOpacity
-                                            style={styles.dropdownItem}
-                                            onPress={() => handleSelectRecipe(item)}
-                                        >
-                                            <Text style={styles.dropdownItemText}>{item.name}</Text>
-                                            <Text style={styles.dropdownItemSub}>{item.totalCalories} kcal</Text>
-                                        </TouchableOpacity>
-                                    )}
-                                    ListEmptyComponent={
-                                        <Text style={styles.emptyDropdownText}>No matching recipes found.</Text>
-                                    }
-                                />
-                            </View>
-                        )}
+                        {/* Portion Size Input (Supports fractions like 1/2 or 1 1/2) */}
+                        <Text style={styles.sectionLabel}>Portion Multiplier / Quantity</Text>
+                        <TextInput
+                            style={styles.textInput}
+                            keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
+                            value={rawPortionInput}
+                            onChangeText={setRawPortionInput}
+                            placeholder="e.g., 1, 1/2, or 1 1/2"
+                            placeholderTextColor="#8E8E93"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
 
-                        {/* Step 2: Portion Multiplier Field */}
-                        <View style={styles.portionRow}>
-                            <View style={styles.portionInputContainer}>
-                                <Text style={styles.inputLabel}>Portion Size Multiplier</Text>
-                                <TextInput
-                                    style={[styles.textInput, styles.portionInput]}
-                                    keyboardType="numeric"
-                                    value={portionSize}
-                                    onChangeText={setPortionSize}
-                                    placeholder="1.0"
-                                />
-                            </View>
-                            <View style={styles.portionHelp}>
-                                <Text style={styles.helpText}>e.g., 0.5 = Half Portion</Text>
-                                <Text style={styles.helpText}>e.g., 1.5 = Extra Serving</Text>
-                            </View>
-                        </View>
-
-                        {/* Step 3: Predictive Scaling Telemetry Preview */}
-                        {selectedRecipe && (
-                            <View style={styles.previewDashboard}>
-                                <Text style={styles.previewTitle}>Scaled Macros Preview</Text>
-                                <View style={styles.macroMetricsRow}>
-                                    <View style={styles.metricCell}>
-                                        <Text style={styles.metricVal}>
-                                            {((selectedRecipe.totalCalories * (parseFloat(portionSize) || 0))).toFixed(0)}
-                                        </Text>
-                                        <Text style={styles.metricLbl}>Calories</Text>
+                        {/* Live Macro Summary Preview Dashboard */}
+                        {selectedItem && (
+                            <View style={styles.previewContainer}>
+                                <Text style={styles.previewHeaderLabel}>Scaled Entry Preview</Text>
+                                <View style={styles.macroDashboard}>
+                                    <View style={[styles.macroBadge, { backgroundColor: '#E1F0FF' }]}>
+                                        <Text style={styles.macroValueText}>{previewMacros.calories.toFixed(0)}</Text>
+                                        <Text style={[styles.macroLabelText, { color: '#007AFF' }]}>kcal</Text>
                                     </View>
-                                    <View style={styles.metricCell}>
-                                        <Text style={styles.metricVal}>
-                                            {((selectedRecipe.totalProtein * (parseFloat(portionSize) || 0))).toFixed(1)}g
-                                        </Text>
-                                        <Text style={styles.metricLbl}>Protein</Text>
+                                    <View style={[styles.macroBadge, { backgroundColor: '#E8F5E8' }]}>
+                                        <Text style={styles.macroValueText}>{previewMacros.protein.toFixed(1)}g</Text>
+                                        <Text style={[styles.macroLabelText, { color: '#34C759' }]}>Protein</Text>
                                     </View>
-                                    <View style={styles.metricCell}>
-                                        <Text style={styles.metricVal}>
-                                            {((selectedRecipe.totalFiber * (parseFloat(portionSize) || 0))).toFixed(1)}g
-                                        </Text>
-                                        <Text style={styles.metricLbl}>Fiber</Text>
+                                    <View style={[styles.macroBadge, { backgroundColor: '#F3E5F5' }]}>
+                                        <Text style={styles.macroValueText}>{previewMacros.fiber.toFixed(1)}g</Text>
+                                        <Text style={[styles.macroLabelText, { color: '#AF52DE' }]}>Fiber</Text>
                                     </View>
                                 </View>
                             </View>
                         )}
 
-                        {/* Footer Form Action Buttons Matrix */}
-                        <View style={styles.actionRow}>
-                            <TouchableOpacity style={[styles.btn, styles.btnCancel]} onPress={onClose}>
-                                <Text style={styles.btnCancelText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[styles.btn, styles.btnSave]} onPress={handleLogMealSubmit}>
-                                <Text style={styles.btnSaveText}>Log to Day</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </KeyboardAvoidingView>
-                </View>
-            </TouchableWithoutFeedback>
+                        {/* Action Submit Button */}
+                        <TouchableOpacity
+                            style={[styles.commitSaveButton, !selectedItem && styles.disabledButton]}
+                            activeOpacity={0.8}
+                            onPress={handleSaveLog}
+                            disabled={!selectedItem}
+                        >
+                            <Text style={styles.commitSaveButtonText}>
+                                {mealToEdit ? 'Save Changes' : 'Confirm & Log Entry'}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </KeyboardAvoidingView>
+            </View>
         </Modal>
     );
 };
@@ -219,169 +307,143 @@ const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.4)',
-        justifyContent: 'center',
-        alignItems: 'center',
+        justifyContent: 'flex-end',
+    },
+    keyboardContainer: {
+        width: '100%',
+        height: '80%',
     },
     modalContainer: {
-        backgroundColor: '#FFF',
-        borderRadius: 20,
-        width: '90%',
-        maxWidth: 420,
-        paddingHorizontal: 24,
-        paddingTop: 26,
-        paddingBottom: 28,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 10,
-        elevation: 6,
+        flex: 1,
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
     },
     modalTitle: {
         fontSize: 20,
         fontWeight: '700',
-        color: '#111',
-        marginBottom: 16,
-        textAlign: 'center',
+        color: '#1C1C1E',
     },
-    inputLabel: {
-        fontSize: 14,
+    sectionLabel: {
+        fontSize: 12,
         fontWeight: '600',
-        color: '#444',
+        color: '#8E8E93',
+        textTransform: 'uppercase',
         marginBottom: 6,
+        marginTop: 14,
     },
     textInput: {
-        backgroundColor: '#F5F5F7',
+        backgroundColor: '#F2F2F7',
         borderRadius: 10,
-        paddingHorizontal: 16,
+        paddingHorizontal: 14,
         paddingVertical: 12,
         fontSize: 16,
-        color: '#000',
+        color: '#000000',
         borderWidth: 1,
         borderColor: '#E5E5EA',
     },
-    searchBarWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    searchBlock: {
         position: 'relative',
-        marginBottom: 14,
+        zIndex: 20,
     },
-    clearInputButton: {
+    searchDropdownContainer: {
         position: 'absolute',
-        right: 12,
-        padding: 4,
-    },
-    dropdownListContainer: {
-        backgroundColor: '#FFF',
+        top: 80,
+        left: 0,
+        right: 0,
+        backgroundColor: '#FFFFFF',
         borderWidth: 1,
         borderColor: '#E5E5EA',
         borderRadius: 10,
-        marginTop: -10,
-        marginBottom: 14,
-        maxHeight: 145,
-        overflow: 'hidden',
-        zIndex: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 4,
+        zIndex: 30,
     },
-    dropdownItem: {
+    dropdownOptionRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        padding: 12,
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#F2F2F7',
     },
-    dropdownItemText: {
-        fontSize: 15,
-        color: '#000',
-        fontWeight: '500',
+    dropdownLeftContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        flex: 1,
+        paddingRight: 10,
     },
-    dropdownItemSub: {
+    dropdownOptionText: {
+        fontSize: 15,
+        color: '#000000',
+        fontWeight: '500',
+        flex: 1,
+    },
+    dropdownOptionSubText: {
         fontSize: 13,
         color: '#8E8E93',
-    },
-    emptyDropdownText: {
-        padding: 12,
-        color: '#8E8E93',
-        textAlign: 'center',
-        fontSize: 14,
-    },
-    portionRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-    },
-    portionInputContainer: {
-        flex: 0.55,
-    },
-    portionInput: {
-        textAlign: 'center',
         fontWeight: '600',
     },
-    portionHelp: {
-        flex: 0.4,
-        justifyContent: 'center',
-        paddingTop: 18,
+    previewContainer: {
+        marginTop: 10,
     },
-    helpText: {
-        fontSize: 11,
-        color: '#8E8E93',
-        lineHeight: 14,
-    },
-    previewDashboard: {
-        backgroundColor: '#F2F2F7',
-        borderRadius: 12,
-        padding: 12,
-        marginBottom: 20,
-    },
-    previewTitle: {
+    previewHeaderLabel: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#666',
-        textAlign: 'center',
-        marginBottom: 6,
+        color: '#8E8E93',
         textTransform: 'uppercase',
+        marginBottom: 4,
     },
-    macroMetricsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-    },
-    metricCell: {
-        alignItems: 'center',
-    },
-    metricVal: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#007AFF',
-    },
-    metricLbl: {
-        fontSize: 11,
-        color: '#666',
-        marginTop: 2,
-    },
-    actionRow: {
+    macroDashboard: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        marginVertical: 6,
     },
-    btn: {
-        flex: 0.48,
+    macroBadge: {
+        flex: 0.31,
+        borderRadius: 10,
+        paddingVertical: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    macroValueText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1C1C1E',
+    },
+    macroLabelText: {
+        fontSize: 11,
+        fontWeight: '600',
+        marginTop: 2,
+    },
+    commitSaveButton: {
+        backgroundColor: '#007AFF',
         borderRadius: 12,
         paddingVertical: 14,
         alignItems: 'center',
         justifyContent: 'center',
+        marginTop: 'auto',
     },
-    btnCancel: {
-        backgroundColor: '#F2F2F7',
+    disabledButton: {
+        backgroundColor: '#C7C7CC',
     },
-    btnCancelText: {
+    commitSaveButtonText: {
+        color: '#FFFFFF',
         fontSize: 16,
         fontWeight: '600',
-        color: '#FF3B30',
-    },
-    btnSave: {
-        backgroundColor: '#007AFF',
-    },
-    btnSaveText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#FFF',
     },
 });

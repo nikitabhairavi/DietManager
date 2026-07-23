@@ -1,5 +1,5 @@
 import { FoodImage } from '@/components/kitchen/FoodImage';
-import { useMealsStore } from '@/data/dataStores/meals/useMealsStore';
+import { LoggedMeal, useMealsStore } from '@/data/dataStores/meals/useMealsStore'; // Using LoggedMeal directly
 import { LogMealModal } from '@/modals/LogMealsModal';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
@@ -9,8 +9,9 @@ import { CalendarStrip } from '../../components/Calendar/calendarStrip';
 export default function DailyMealsScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [selectedMealForEdit, setSelectedMealForEdit] = useState<LoggedMeal | null>(null);
 
-  // Hook into live Zustand day-tracking store slice
+  // Hook into your live Zustand day-tracking store slice
   const mealsByDay = useMealsStore((state) => state.mealsByDay);
   const removeMeal = useMealsStore((state) => state.removeMeal);
 
@@ -24,7 +25,7 @@ export default function DailyMealsScreen() {
 
   const targetDateString = useMemo(() => formatDateString(selectedDate), [selectedDate]);
 
-  // O(1) live lookup pulling directly from structural dictionary array
+  // O(1) live lookup pulling directly from the structural dictionary array
   const currentDayMeals = useMemo(() => {
     return mealsByDay[targetDateString] || [];
   }, [mealsByDay, targetDateString]);
@@ -45,6 +46,22 @@ export default function DailyMealsScreen() {
       { calories: 0, protein: 0, fiber: 0 }
     );
   }, [currentDayMeals]);
+
+  // --- Modal Open/Close Handlers ---
+  const handleOpenEdit = (meal: LoggedMeal) => {
+    setSelectedMealForEdit(meal);
+    setIsLogModalOpen(true);
+  };
+
+  const handleOpenCreate = () => {
+    setSelectedMealForEdit(null);
+    setIsLogModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsLogModalOpen(false);
+    setSelectedMealForEdit(null);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -98,7 +115,11 @@ export default function DailyMealsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listPadding}
         renderItem={({ item }) => (
-          <View style={styles.mealCard}>
+          <TouchableOpacity
+            style={styles.mealCard}
+            activeOpacity={0.7}
+            onPress={() => handleOpenEdit(item)}
+          >
             {/* Meal Ingredient/Dish Thumbnail Image */}
             <FoodImage name={item.name} size={48} />
 
@@ -120,15 +141,16 @@ export default function DailyMealsScreen() {
               <Text style={styles.logTimeStr}>{item.loggedAtTime}</Text>
             </View>
 
-            {/* Quick-action single entry inline deletion */}
+            {/* Quick-action inline deletion */}
             <TouchableOpacity
               style={styles.deleteButton}
               onPress={() => removeMeal(targetDateString, item.id)}
               activeOpacity={0.6}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="trash-outline" size={18} color="#FF3B30" />
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -142,7 +164,7 @@ export default function DailyMealsScreen() {
       <TouchableOpacity
         style={styles.fab}
         activeOpacity={0.8}
-        onPress={() => setIsLogModalOpen(true)}
+        onPress={handleOpenCreate}
       >
         <Ionicons name="add" size={30} color="#FFFFFF" />
       </TouchableOpacity>
@@ -150,8 +172,9 @@ export default function DailyMealsScreen() {
       {/* Log Meal Interface Sheet Overlay Portal */}
       <LogMealModal
         isVisible={isLogModalOpen}
-        onClose={() => setIsLogModalOpen(false)}
+        onClose={handleCloseModal}
         targetDateString={targetDateString}
+        mealToEdit={selectedMealForEdit}
       />
     </SafeAreaView>
   );
