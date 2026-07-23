@@ -111,8 +111,8 @@ export default function ProgressScreen() {
         <ActivityCard
           title="Active Burn"
           iconName="barbell"
-          themeColor="#FF9500"
-          badgeBgColor="#FFF4E5"
+          themeColor="#FF3B30" // Vibrant iOS Red
+          badgeBgColor="rgba(255, 59, 48, 0.15)"
           currentValue={activeCaloriesBurned}
           targetValue={dailyActiveCaloriesTarget}
           unit="kcal"

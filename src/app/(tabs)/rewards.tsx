@@ -99,7 +99,6 @@ export default function Rewards() {
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {/* Header Section */}
         <View style={styles.header}>
-          <Text style={styles.title}>Rewards Hub</Text>
           <Text style={styles.subtitle}>Points reset automatically on the 1st of each month.</Text>
         </View>
 

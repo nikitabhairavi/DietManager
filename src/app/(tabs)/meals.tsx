@@ -104,10 +104,6 @@ export default function DailyMealsScreen() {
         </View>
       )}
 
-      {/* Header Context Section */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Meals on {displayTitle}</Text>
-      </View>
 
       {/* Meals Construction List Matrix */}
       <FlatList
