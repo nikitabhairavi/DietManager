@@ -15,6 +15,7 @@
         "com.apple.developer.healthkit.background-delivery": true
       },
       "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "This app requires access to your photo library to select a profile picture.",
         "NSHealthShareUsageDescription": "DietManager needs read access to your Apple Watch active calories and workouts to calculate daily deficits and progress.",
         "NSHealthUpdateUsageDescription": "DietManager needs write access to sync active calorie logs into Apple Health."
       }
@@ -36,12 +37,19 @@
     "plugins": [
       "expo-router",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you choose a custom profile image."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#208AEF",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+        
       ],
       "expo-asset",
       "expo-sqlite"

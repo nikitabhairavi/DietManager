@@ -1,16 +1,27 @@
+import { ProfileImageUploader } from '@/components/Account/ProfileInageUploader';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function AccountScreen() {
     const router = useRouter();
+    const [profileImage, setProfileImage] = useState<string | null>(null);
+
+    const handleImageSelected = (uri: string) => {
+        setProfileImage(uri);
+        // Store or upload image URI logic here
+    };
 
     return (
         <View style={styles.container}>
+            {/* Interactive Profile Image Upload Slot */}
             <View style={styles.profileHeader}>
-                <Ionicons name="person-circle" size={72} color="#007AFF" />
-                <Text style={styles.name}>Account Settings</Text>
+                <ProfileImageUploader
+                    initialImageUri={profileImage}
+                    onImageSelected={handleImageSelected}
+                    size={110}
+                />
             </View>
 
             <View style={styles.section}>
@@ -52,12 +63,6 @@ const styles = StyleSheet.create({
     profileHeader: {
         alignItems: 'center',
         marginVertical: 20,
-    },
-    name: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#1C1C1E',
-        marginTop: 8,
     },
     section: {
         marginTop: 20,
