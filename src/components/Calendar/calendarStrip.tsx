@@ -11,6 +11,9 @@ const ITEM_WIDTH = 48;
 const ITEM_MARGIN = 4;
 const FULL_ITEM_SIZE = ITEM_WIDTH + ITEM_MARGIN * 2; // 56px
 
+// Calculate side padding based on exact physical screen width so item centers at SCREEN_WIDTH / 2
+const CENTER_PADDING = SCREEN_WIDTH / 2 - FULL_ITEM_SIZE / 2;
+
 export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDateSelect }) => {
     const flatListRef = useRef<FlatList<Date>>(null);
     const isInitialMount = useRef(true);
@@ -26,134 +29,131 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({ selectedDate, onDa
 
     const today = useMemo(() => new Date(), []);
 
-    // Month & Year header text (e.g., "April 2026")
-    const headerTitle = useMemo(() => {
+    // Month & Year text (e.g., "April 2026")
+    const monthYearTitle = useMemo(() => {
         return selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     }, [selectedDate]);
 
-    // Generate 14 days surrounding selected/current date
+    // Generate days centered around today
     const daysArray = useMemo(() => {
         const dates = [];
-        for (let i = -7; i <= 7; i++) {
-            const d = new Date(today);
-            d.setDate(today.getDate() + i);
+        const baseDate = today;
+        for (let i = -30; i <= 30; i++) {
+            const d = new Date(baseDate);
+            d.setDate(baseDate.getDate() + i);
             dates.push(d);
         }
         return dates;
     }, [today]);
 
     const selectedIndex = useMemo(() => {
-        return daysArray.findIndex((date) => isSameDay(date, selectedDate));
+        const idx = daysArray.findIndex((date) => isSameDay(date, selectedDate));
+        return idx !== -1 ? idx : Math.floor(daysArray.length / 2);
     }, [daysArray, selectedDate]);
 
+    // Scroll exact offset to center item precisely
     useEffect(() => {
         if (selectedIndex === -1) return;
 
         const scrollToTarget = () => {
-            flatListRef.current?.scrollToIndex({
-                index: selectedIndex,
+            const targetOffset = selectedIndex * FULL_ITEM_SIZE;
+
+            flatListRef.current?.scrollToOffset({
+                offset: targetOffset,
                 animated: !isInitialMount.current,
-                viewPosition: 0.5,
             });
             isInitialMount.current = false;
         };
 
         const timeoutId = setTimeout(() => {
             requestAnimationFrame(scrollToTarget);
-        }, 60);
+        }, 50);
 
         return () => clearTimeout(timeoutId);
     }, [selectedIndex]);
 
     return (
-        <View style={styles.curvedBannerContainer}>
-            {/* Header Month / Year */}
-            <Text style={styles.monthHeaderText}>{headerTitle}</Text>
+        <View style={styles.bannerContainer}>
+            {/* Top Separator Divider */}
+            <View style={styles.topDivider} />
 
-            {/* Horizontal Day Selector */}
-            <FlatList
-                ref={flatListRef}
-                data={daysArray}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                snapToInterval={FULL_ITEM_SIZE}
-                decelerationRate="fast"
-                keyExtractor={(item) => item.toISOString()}
-                contentContainerStyle={styles.listPadding}
-                getItemLayout={(_, index) => ({
-                    length: FULL_ITEM_SIZE,
-                    offset: FULL_ITEM_SIZE * index,
-                    index,
-                })}
-                onScrollToIndexFailed={(info) => {
-                    flatListRef.current?.scrollToOffset({
-                        offset: info.averageItemLength * info.index,
-                        animated: false,
-                    });
-                    setTimeout(() => {
-                        flatListRef.current?.scrollToIndex({
-                            index: info.index,
-                            animated: false,
-                            viewPosition: 0.5,
-                        });
-                    }, 80);
-                }}
-                renderItem={({ item }) => {
-                    const isSelected = isSameDay(item, selectedDate);
-                    const isTodayItem = isSameDay(item, today);
+            {/* Month & Year Sub-Header */}
+            <Text style={styles.monthSubHeaderText}>{monthYearTitle}</Text>
 
-                    // 2-Letter short format matching screenshot: Su, Mo, Tu, We, Th, Fr, Sa
-                    const weekday = item.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 2);
-                    const dayNumber = item.getDate();
+            {/* Day Selector */}
+            <View style={styles.flatListWrapper}>
+                <FlatList
+                    ref={flatListRef}
+                    data={daysArray}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    snapToInterval={FULL_ITEM_SIZE}
+                    decelerationRate="fast"
+                    keyExtractor={(item) => item.toISOString()}
+                    contentContainerStyle={styles.listPadding}
+                    getItemLayout={(_, index) => ({
+                        length: FULL_ITEM_SIZE,
+                        offset: FULL_ITEM_SIZE * index,
+                        index,
+                    })}
+                    renderItem={({ item }) => {
+                        const isSelected = isSameDay(item, selectedDate);
+                        const isTodayItem = isSameDay(item, today);
 
-                    return (
-                        <TouchableOpacity
-                            style={[styles.dayColumn, isSelected && styles.selectedDayColumn]}
-                            onPress={() => onDateSelect(item)}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={[styles.weekdayText, isSelected && styles.selectedText]}>
-                                {weekday}
-                            </Text>
+                        const weekday = item.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 2);
+                        const dayNumber = item.getDate();
 
-                            <Text style={[styles.dayNumberText, isSelected && styles.selectedText]}>
-                                {dayNumber}
-                            </Text>
+                        return (
+                            <TouchableOpacity
+                                style={[styles.dayColumn, isSelected && styles.selectedDayColumn]}
+                                onPress={() => onDateSelect(item)}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={[styles.weekdayText, isSelected && styles.selectedText]}>
+                                    {weekday}
+                                </Text>
 
-                            {/* Optional Today indicator dot */}
-                            {isTodayItem && <View style={styles.todayDot} />}
-                        </TouchableOpacity>
-                    );
-                }}
-            />
+                                <Text style={[styles.dayNumberText, isSelected && styles.selectedText]}>
+                                    {dayNumber}
+                                </Text>
+
+                                {isTodayItem && <View style={styles.todayDot} />}
+                            </TouchableOpacity>
+                        );
+                    }}
+                />
+            </View>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    // Scaled container creating the downward curved arc
-    curvedBannerContainer: {
-        backgroundColor: '#000000', // Deep black theme replacing the green
-        paddingTop: 16,
-        paddingBottom: 28,
-        width: SCREEN_WIDTH * 1.2, // Expanded past screen boundaries to yield arc curvature
-        alignSelf: 'center',
-        borderBottomLeftRadius: SCREEN_WIDTH * 0.6,
-        borderBottomRightRadius: SCREEN_WIDTH * 0.6,
-        alignItems: 'center',
-        overflow: 'hidden',
+    bannerContainer: {
+        backgroundColor: '#000000',
+        paddingBottom: 16,
+        width: '100%',
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: '#1C1C1E',
     },
-    monthHeaderText: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#FFFFFF',
-        alignSelf: 'flex-start',
-        marginLeft: SCREEN_WIDTH * 0.16 + 16, // Aligns header gracefully over screen edge
-        marginBottom: 16,
-        letterSpacing: -0.3,
+    topDivider: {
+        width: '100%',
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        marginBottom: 12,
+    },
+    monthSubHeaderText: {
+        fontSize: 15,
+        fontWeight: '500',
+        color: '#A1A1A6',
+        paddingHorizontal: 16,
+        marginBottom: 12,
+        letterSpacing: -0.2,
+    },
+    flatListWrapper: {
+        width: '100%',
     },
     listPadding: {
-        paddingHorizontal: SCREEN_WIDTH * 0.6 - FULL_ITEM_SIZE / 2,
+        paddingHorizontal: CENTER_PADDING,
     },
     dayColumn: {
         width: ITEM_WIDTH,
@@ -164,16 +164,16 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
     selectedDayColumn: {
-        backgroundColor: '#1C1C1E', // Elevated dark tile indicator for active selection
+        backgroundColor: '#1C1C1E',
     },
     weekdayText: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '500',
         color: '#8E8E93',
-        marginBottom: 6,
+        marginBottom: 4,
     },
     dayNumberText: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: '600',
         color: '#E5E5EA',
     },

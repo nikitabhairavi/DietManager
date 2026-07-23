@@ -29,10 +29,6 @@ export default function MyKitchenScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header Title */}
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>My Kitchen</Text>
-      </View>
 
       {/* Modern iOS Segmented Control */}
       <View style={styles.segmentedControlWrapper}>
@@ -139,6 +135,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tabContainer: {
+    marginTop: 4,
     flexDirection: 'row',
     backgroundColor: '#7676801F', // Translucent native gray tint
     borderRadius: 12,
