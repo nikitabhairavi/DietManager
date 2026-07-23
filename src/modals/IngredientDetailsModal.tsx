@@ -1,3 +1,4 @@
+import { FoodImage } from '@/components/kitchen/FoodImage';
 import { Ingredient, useIngredientsStore } from '@/data/dataStores/ingredientsStore/useIngredientStore';
 import React, { useEffect, useState } from 'react';
 import {
@@ -67,6 +68,11 @@ export const IngredientDetailsModal: React.FC<IngredientDetailsModalProps> = ({
                                 contentContainerStyle={styles.scrollContent}
                                 keyboardShouldPersistTaps="handled"
                             >
+                                {/* Ingredient Image Preview */}
+                                <View style={styles.imageHeaderContainer}>
+                                    <FoodImage name={ingredient.name} size={72} />
+                                </View>
+
                                 <Text style={styles.modalTitle}>{ingredient.name}</Text>
 
                                 <View style={styles.inputRow}>
@@ -145,7 +151,7 @@ const styles = StyleSheet.create({
     },
     modalContainer: {
         width: '90%',
-        maxHeight: '90%', // Increased max height to give more vertical room
+        maxHeight: '90%',
         backgroundColor: '#FFFFFF',
         borderRadius: 20,
         paddingHorizontal: 22,
@@ -160,6 +166,11 @@ const styles = StyleSheet.create({
     scrollContent: {
         flexGrow: 1,
         paddingBottom: 10,
+    },
+    imageHeaderContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 12,
     },
     modalTitle: {
         fontSize: 20,

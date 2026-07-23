@@ -1,3 +1,4 @@
+import { FoodImage } from '@/components/kitchen/FoodImage';
 import { useIngredientsStore } from '@/data/dataStores/ingredientsStore/useIngredientStore';
 import { useRecipeStore } from '@/data/dataStores/recipeStore/useRecipeStore';
 import { Recipe, RecipeIngredient } from '@/types/RecipeTypes';
@@ -21,12 +22,47 @@ interface RecipeDetailModalProps {
     onClose: () => void;
 }
 
+/**
+ * Parses user input strings like "1/2", "3/4", "1 1/2", or "1.5" into a numeric decimal float.
+ */
+const parseQuantity = (value: string | number): number => {
+    if (typeof value === 'number') return isNaN(value) ? 0 : value;
+    if (!value || typeof value !== 'string') return 0;
+
+    const trimmed = value.trim();
+    if (!trimmed) return 0;
+
+    // Handle mixed numbers like "1 1/2"
+    if (trimmed.includes(' ')) {
+        const parts = trimmed.split(/\s+/);
+        if (parts.length === 2) {
+            const whole = parseFloat(parts[0]);
+            const frac = parseQuantity(parts[1]);
+            return (isNaN(whole) ? 0 : whole) + frac;
+        }
+    }
+
+    // Handle standard fractions like "1/2" or "3/4"
+    if (trimmed.includes('/')) {
+        const [numerator, denominator] = trimmed.split('/');
+        const num = parseFloat(numerator);
+        const den = parseFloat(denominator);
+        if (!isNaN(num) && !isNaN(den) && den !== 0) {
+            return num / den;
+        }
+    }
+
+    // Fallback to standard decimal float
+    const parsed = parseFloat(trimmed);
+    return isNaN(parsed) ? 0 : parsed;
+};
+
 export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, isVisible, onClose }) => {
     const addRecipe = useRecipeStore((state) => state.addRecipe);
     const deleteRecipe = useRecipeStore((state) => state.deleteRecipe);
     const initialIngredients = useIngredientsStore((state) => state.ingredients);
     const [recipeName, setRecipeName] = useState('');
-    const [ingredientsList, setIngredientsList] = useState<RecipeIngredient[]>([]);
+    const [ingredientsList, setIngredientsList] = useState<(RecipeIngredient & { rawUnitInput?: string })[]>([]);
     const [ingredientSearch, setIngredientSearch] = useState('');
     const [showDropdown, setShowDropdown] = useState(false);
 
@@ -34,7 +70,12 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
     useEffect(() => {
         if (recipe && isVisible) {
             setRecipeName(recipe.name);
-            setIngredientsList([...recipe.ingredients]);
+            setIngredientsList(
+                recipe.ingredients.map((item) => ({
+                    ...item,
+                    rawUnitInput: item.unitsUsed === 0 ? '' : item.unitsUsed.toString(),
+                }))
+            );
         } else {
             setRecipeName('');
             setIngredientsList([]);
@@ -43,7 +84,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
         setShowDropdown(false);
     }, [recipe, isVisible]);
 
-    // Fast O(1) ingredient lookup map for dynamic macro processing
+    // Fast O(1) ingredient lookup map
     const ingredientsLookup = useMemo(() => {
         return initialIngredients.reduce((acc, ing) => {
             acc[ing.id] = ing;
@@ -51,15 +92,16 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
         }, {} as Record<string, typeof initialIngredients[0]>);
     }, [initialIngredients]);
 
-    // Compute live cumulative macros dynamically based on unitsUsed fields
+    // Compute dynamic cumulative macros using parseQuantity
     const computedTotals = useMemo(() => {
         return ingredientsList.reduce(
             (acc, item) => {
                 const match = ingredientsLookup[item.ingredientId];
                 if (match) {
-                    acc.calories += match.caloriesPerUnit * item.unitsUsed;
-                    acc.protein += match.proteinPerUnit * item.unitsUsed;
-                    acc.fiber += match.fiberPerUnit * item.unitsUsed;
+                    const numericUnits = parseQuantity(item.rawUnitInput ?? item.unitsUsed);
+                    acc.calories += match.caloriesPerUnit * numericUnits;
+                    acc.protein += match.proteinPerUnit * numericUnits;
+                    acc.fiber += match.fiberPerUnit * numericUnits;
                 }
                 return acc;
             },
@@ -76,12 +118,13 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
 
     // --- Core Mutation Actions ---
     const handleModifyUnits = (ingredientId: string, text: string) => {
-        const numericValue = parseFloat(text);
-        const safeValue = isNaN(numericValue) ? 0 : numericValue;
+        const parsedValue = parseQuantity(text);
 
         setIngredientsList((current) =>
             current.map((item) =>
-                item.ingredientId === ingredientId ? { ...item, unitsUsed: safeValue } : item
+                item.ingredientId === ingredientId
+                    ? { ...item, rawUnitInput: text, unitsUsed: parsedValue }
+                    : item
             )
         );
     };
@@ -102,6 +145,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
                 ingredientId: item.id,
                 name: `${item.name} (${item.quantityPerUnit})`,
                 unitsUsed: 1,
+                rawUnitInput: '1',
             },
         ]);
         setIngredientSearch('');
@@ -122,10 +166,17 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
             deleteRecipe(recipe.id);
         }
 
+        // Clean up internal rawUnitInput state before persisting to store
+        const cleanedIngredients: RecipeIngredient[] = ingredientsList.map((item) => ({
+            ingredientId: item.ingredientId,
+            name: item.name,
+            unitsUsed: parseQuantity(item.rawUnitInput ?? item.unitsUsed),
+        }));
+
         addRecipe({
             id: recipe?.id || `rec_${Date.now()}`,
             name: recipeName,
-            ingredients: ingredientsList,
+            ingredients: cleanedIngredients,
             totalCalories: parseFloat(computedTotals.calories.toFixed(1)),
             totalProtein: parseFloat(computedTotals.protein.toFixed(1)),
             totalFiber: parseFloat(computedTotals.fiber.toFixed(1)),
@@ -142,7 +193,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
                     style={styles.keyboardContainer}
                 >
                     <View style={styles.modalContainer}>
-                        {/* Top Title Banner layout */}
+                        {/* Modal Header */}
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>
                                 {recipe ? 'Edit Recipe Details' : 'Create Recipe Blueprint'}
@@ -152,7 +203,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
                             </TouchableOpacity>
                         </View>
 
-                        {/* Identity Parameters field */}
+                        {/* Name Input */}
                         <Text style={styles.sectionLabel}>Recipe Identity Name</Text>
                         <TextInput
                             style={styles.textInput}
@@ -162,7 +213,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
                             placeholderTextColor="#8E8E93"
                         />
 
-                        {/* Real-time Scaled Macro Telemetry Summary Grid */}
+                        {/* Real-time Macro Dashboard */}
                         <View style={styles.macroDashboard}>
                             <View style={[styles.macroBadge, { backgroundColor: '#E1F0FF' }]}>
                                 <Text style={styles.macroValueText}>{computedTotals.calories.toFixed(0)}</Text>
@@ -178,7 +229,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
                             </View>
                         </View>
 
-                        {/* Catalog Selection Interceptor Search (NOW BEFORE FORMULATION) */}
+                        {/* Search Block */}
                         <View style={styles.searchBlock}>
                             <Text style={styles.sectionLabel}>Search & Inject Ingredients</Text>
                             <TextInput
@@ -197,7 +248,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
                                     <FlatList
                                         data={filteredSearchIngredients}
                                         keyExtractor={(item) => item.id}
-                                        style={{ maxHeight: 150 }}
+                                        style={{ maxHeight: 180 }}
                                         nestedScrollEnabled
                                         keyboardShouldPersistTaps="handled"
                                         renderItem={({ item }) => (
@@ -205,7 +256,10 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
                                                 style={styles.dropdownOptionRow}
                                                 onPress={() => handleAddIngredient(item)}
                                             >
-                                                <Text style={styles.dropdownOptionText}>{item.name}</Text>
+                                                <View style={styles.dropdownLeftContainer}>
+                                                    <FoodImage name={item.name} size={28} />
+                                                    <Text style={styles.dropdownOptionText}>{item.name}</Text>
+                                                </View>
                                                 <Text style={styles.dropdownOptionSubText}>
                                                     {item.quantityPerUnit}
                                                 </Text>
@@ -216,7 +270,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
                             )}
                         </View>
 
-                        {/* Composition Breakdown Matrix */}
+                        {/* Formulation Matrix */}
                         <Text style={styles.sectionLabel}>Active Ingredients Formulation</Text>
                         <View style={styles.listContainer}>
                             <FlatList
@@ -224,32 +278,40 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
                                 keyExtractor={(item) => item.ingredientId}
                                 style={styles.ingredientsListMax}
                                 showsVerticalScrollIndicator={true}
-                                renderItem={({ item }) => (
-                                    <View style={styles.ingredientRowCard}>
-                                        <View style={styles.ingredientMeta}>
-                                            <Text style={styles.ingredientNameText} numberOfLines={1}>
-                                                {item.name}
-                                            </Text>
+                                renderItem={({ item }) => {
+                                    const match = ingredientsLookup[item.ingredientId];
+                                    const lookupName = match ? match.name : item.name.split(' (')[0];
+
+                                    return (
+                                        <View style={styles.ingredientRowCard}>
+                                            <FoodImage name={lookupName} size={36} />
+                                            <View style={styles.ingredientMeta}>
+                                                <Text style={styles.ingredientNameText} numberOfLines={1}>
+                                                    {item.name}
+                                                </Text>
+                                            </View>
+                                            <View style={styles.quantityEditWrapper}>
+                                                <Text style={styles.multiplierLabel}>Units:</Text>
+                                                <TextInput
+                                                    style={styles.unitInput}
+                                                    keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
+                                                    value={item.rawUnitInput !== undefined ? item.rawUnitInput : item.unitsUsed.toString()}
+                                                    placeholder="1"
+                                                    onChangeText={(text) => handleModifyUnits(item.ingredientId, text)}
+                                                    autoCapitalize="none"
+                                                    autoCorrect={false}
+                                                />
+                                            </View>
+                                            <TouchableOpacity
+                                                style={styles.inlineRemoveButton}
+                                                onPress={() => handleRemoveIngredient(item.ingredientId)}
+                                                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                                            >
+                                                <Ionicons name="remove-circle" size={22} color="#FF3B30" />
+                                            </TouchableOpacity>
                                         </View>
-                                        <View style={styles.quantityEditWrapper}>
-                                            <Text style={styles.multiplierLabel}>Units:</Text>
-                                            <TextInput
-                                                style={styles.unitInput}
-                                                keyboardType="numeric"
-                                                value={item.unitsUsed === 0 ? '' : item.unitsUsed.toString()}
-                                                placeholder="0"
-                                                onChangeText={(text) => handleModifyUnits(item.ingredientId, text)}
-                                            />
-                                        </View>
-                                        <TouchableOpacity
-                                            style={styles.inlineRemoveButton}
-                                            onPress={() => handleRemoveIngredient(item.ingredientId)}
-                                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                                        >
-                                            <Ionicons name="remove-circle" size={22} color="#FF3B30" />
-                                        </TouchableOpacity>
-                                    </View>
-                                )}
+                                    );
+                                }}
                                 ListEmptyComponent={
                                     <Text style={styles.emptyIngredientsText}>
                                         No ingredients added to this formulation yet.
@@ -258,7 +320,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({ recipe, is
                             />
                         </View>
 
-                        {/* Action Submission Grid Footer */}
+                        {/* Footer Action */}
                         <TouchableOpacity
                             style={styles.commitSaveButton}
                             activeOpacity={0.8}
@@ -350,7 +412,7 @@ const styles = StyleSheet.create({
     },
     searchDropdownContainer: {
         position: 'absolute',
-        top: 68, // Opens downward below the search input field
+        top: 68,
         left: 0,
         right: 0,
         backgroundColor: '#FFFFFF',
@@ -367,10 +429,17 @@ const styles = StyleSheet.create({
     dropdownOptionRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#F2F2F7',
+    },
+    dropdownLeftContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        flex: 1,
     },
     dropdownOptionText: {
         fontSize: 15,
@@ -398,10 +467,11 @@ const styles = StyleSheet.create({
         marginBottom: 6,
         borderWidth: 1,
         borderColor: '#E5E5EA',
+        gap: 10,
     },
     ingredientMeta: {
         flex: 1,
-        paddingRight: 8,
+        paddingRight: 4,
     },
     ingredientNameText: {
         fontSize: 15,
@@ -423,16 +493,16 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#C7C7CC',
         borderRadius: 6,
-        width: 52,
+        width: 64, // Slightly wider to accommodate strings like "1 1/2"
         height: 32,
         textAlign: 'center',
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '600',
         color: '#000000',
     },
     inlineRemoveButton: {
         padding: 4,
-        marginLeft: 6,
+        marginLeft: 2,
     },
     emptyIngredientsText: {
         textAlign: 'center',
