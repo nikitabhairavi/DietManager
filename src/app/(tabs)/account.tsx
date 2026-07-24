@@ -1,4 +1,4 @@
-import { ProfileImageUploader } from '@/components/Account/ProfileInageUploader';
+import { ProfileImageUploader } from '@/components/Account/ProfileImageUploader';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
