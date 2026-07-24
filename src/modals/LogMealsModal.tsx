@@ -1,5 +1,6 @@
 import { FoodImage } from '@/components/kitchen/FoodImage';
 import { useIngredientsStore } from '@/data/dataStores/ingredientsStore/useIngredientStore';
+import { useMealPlanStore } from '@/data/dataStores/meals/useMealPlanStore';
 import { LoggedMeal, useMealsStore } from '@/data/dataStores/meals/useMealsStore';
 import { useRecipeStore } from '@/data/dataStores/recipeStore/useRecipeStore';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +22,7 @@ interface LogMealModalProps {
     onClose: () => void;
     targetDateString: string;
     mealToEdit?: LoggedMeal | null;
+    isPlanningMode?: boolean;
 }
 
 interface MealItemDraft {
@@ -64,11 +66,17 @@ export const LogMealModal: React.FC<LogMealModalProps> = ({
     onClose,
     targetDateString,
     mealToEdit,
+    isPlanningMode = false,
 }) => {
     const recipes = useRecipeStore((state) => state.recipes);
     const ingredients = useIngredientsStore((state) => state.ingredients);
+
+    // Direct Logging Stores
     const logMeal = useMealsStore((state) => state.logMeal);
     const removeMeal = useMealsStore((state) => state.removeMeal);
+
+    // Planning Store
+    const addPlannedMeal = useMealPlanStore((state) => state.addPlannedMeal);
 
     // Form states
     const [mealName, setMealName] = useState('Breakfast');
@@ -89,11 +97,15 @@ export const LogMealModal: React.FC<LogMealModalProps> = ({
     useEffect(() => {
         if (isVisible) {
             if (mealToEdit) {
-                setMealName(mealToEdit.name || 'Meal');
+                setMealName(mealToEdit.name ? mealToEdit.name.split(':')[0] : 'Meal');
+                const displayName = mealToEdit.name.includes(':')
+                    ? mealToEdit.name.split(':')[1].trim()
+                    : mealToEdit.name;
+
                 setItemsDraft([
                     {
                         id: mealToEdit.recipeId || `${Date.now()}`,
-                        name: mealToEdit.name,
+                        name: displayName,
                         portionSize: mealToEdit.portionSize || 1,
                         rawPortionInput: (mealToEdit.portionSize || 1).toString(),
                         baseCalories: mealToEdit.totalCalories / (mealToEdit.portionSize || 1),
@@ -136,7 +148,7 @@ export const LogMealModal: React.FC<LogMealModalProps> = ({
         if (!searchQuery.trim()) return [];
         return selectableCatalog
             .filter((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-            .slice(0, 5); // Limit dropdown items to top 5 results to keep overlay compact
+            .slice(0, 5); // Clamped to 5 items to keep search dropdown compact
     }, [searchQuery, selectableCatalog]);
 
     const handleAddItemToDraft = () => {
@@ -179,13 +191,31 @@ export const LogMealModal: React.FC<LogMealModalProps> = ({
 
     const handleSaveLog = () => {
         if (itemsDraft.length === 0) {
-            alert('Please add at least one ingredient or recipe to this meal.');
+            alert('Please add at least one ingredient or recipe.');
             return;
         }
 
         const now = new Date();
         const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+        // Handling Meal Plan Creation
+        if (isPlanningMode) {
+            itemsDraft.forEach((item) => {
+                addPlannedMeal(targetDateString, {
+                    category: mealName,
+                    recipeId: item.id,
+                    name: item.name,
+                    portionSize: item.portionSize,
+                    baseCalories: item.baseCalories,
+                    baseProtein: item.baseProtein,
+                    baseFiber: item.baseFiber,
+                });
+            });
+            onClose();
+            return;
+        }
+
+        // Direct Daily Logging Mode
         if (mealToEdit) {
             removeMeal(targetDateString, mealToEdit.id);
         }
@@ -218,10 +248,14 @@ export const LogMealModal: React.FC<LogMealModalProps> = ({
                     style={styles.keyboardContainer}
                 >
                     <View style={styles.modalContainer}>
-                        {/* Header */}
+                        {/* Modal Header */}
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>
-                                {mealToEdit ? 'Edit Meal Entry' : 'Create & Log Meal'}
+                                {isPlanningMode
+                                    ? 'Add Meals to Plan'
+                                    : mealToEdit
+                                        ? 'Edit Meal Entry'
+                                        : 'Create & Log Meal'}
                             </Text>
                             <TouchableOpacity onPress={onClose}>
                                 <Ionicons name="close" size={24} color="#1C1C1E" />
@@ -229,7 +263,7 @@ export const LogMealModal: React.FC<LogMealModalProps> = ({
                         </View>
 
                         <ScrollView showsVerticalScrollIndicator={false} nestedScrollEnabled>
-                            {/* Meal Name Input & Presets */}
+                            {/* Meal Category Input & Preset Chips */}
                             <Text style={styles.sectionLabel}>Meal Name / Category</Text>
                             <TextInput
                                 style={styles.textInput}
@@ -261,7 +295,7 @@ export const LogMealModal: React.FC<LogMealModalProps> = ({
                                 ))}
                             </View>
 
-                            {/* Add Item Block */}
+                            {/* Search & Add Item Block */}
                             <View style={styles.searchBlock}>
                                 <Text style={styles.sectionLabel}>Add Recipe or Ingredient</Text>
                                 <TextInput
@@ -275,7 +309,6 @@ export const LogMealModal: React.FC<LogMealModalProps> = ({
                                     placeholderTextColor="#8E8E93"
                                 />
 
-                                {/* Replaced FlatList with standard View mapping to eliminate warning */}
                                 {showDropdown && filteredCatalog.length > 0 && (
                                     <View style={styles.searchDropdownContainer}>
                                         {filteredCatalog.map((item) => (
@@ -322,7 +355,7 @@ export const LogMealModal: React.FC<LogMealModalProps> = ({
                                 </View>
                             )}
 
-                            {/* Added Items List */}
+                            {/* Draft List */}
                             <Text style={styles.sectionLabel}>Meal Items ({itemsDraft.length})</Text>
                             {itemsDraft.map((item, idx) => (
                                 <View key={`${item.id}-${idx}`} style={styles.draftItemRow}>
@@ -339,7 +372,7 @@ export const LogMealModal: React.FC<LogMealModalProps> = ({
                                 </View>
                             ))}
 
-                            {/* Macro Summary */}
+                            {/* Macro Dashboard */}
                             {itemsDraft.length > 0 && (
                                 <View style={styles.macroDashboard}>
                                     <View style={[styles.macroBadge, { backgroundColor: '#E1F0FF' }]}>
@@ -358,14 +391,16 @@ export const LogMealModal: React.FC<LogMealModalProps> = ({
                             )}
                         </ScrollView>
 
-                        {/* Confirm Button */}
+                        {/* Save Action Button */}
                         <TouchableOpacity
                             style={[styles.commitSaveButton, itemsDraft.length === 0 && styles.disabledButton]}
                             activeOpacity={0.8}
                             onPress={handleSaveLog}
                             disabled={itemsDraft.length === 0}
                         >
-                            <Text style={styles.commitSaveButtonText}>Confirm & Log Meal</Text>
+                            <Text style={styles.commitSaveButtonText}>
+                                {isPlanningMode ? 'Save to Meal Plan' : mealToEdit ? 'Save Changes' : 'Confirm & Log Meal'}
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </KeyboardAvoidingView>

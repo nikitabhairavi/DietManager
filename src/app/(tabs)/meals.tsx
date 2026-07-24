@@ -2,11 +2,13 @@ import { FoodImage } from '@/components/kitchen/FoodImage';
 import { LoggedMeal, useMealsStore } from '@/data/dataStores/meals/useMealsStore';
 import { LogMealModal } from '@/modals/LogMealsModal';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CalendarStrip } from '../../components/Calendar/calendarStrip';
 
 export default function DailyMealsScreen() {
+  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [selectedMealForEdit, setSelectedMealForEdit] = useState<LoggedMeal | null>(null);
@@ -36,7 +38,6 @@ export default function DailyMealsScreen() {
     );
   }, [currentDayMeals]);
 
-  // Group meals by category name (e.g., "Breakfast", "Lunch")
   const groupedMeals = useMemo(() => {
     const groups: { [key: string]: LoggedMeal[] } = {};
     currentDayMeals.forEach((meal) => {
@@ -46,6 +47,13 @@ export default function DailyMealsScreen() {
     });
     return Object.entries(groups);
   }, [currentDayMeals]);
+
+  const handleNavigateToPlan = () => {
+    router.push({
+      pathname: '/meals/PlannedMealsScreen',
+      params: { dateKey: targetDateString },
+    });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -119,13 +127,36 @@ export default function DailyMealsScreen() {
         }
       />
 
-      <TouchableOpacity style={styles.fab} onPress={() => { setSelectedMealForEdit(null); setIsLogModalOpen(true); }}>
-        <Ionicons name="add" size={30} color="#FFFFFF" />
-      </TouchableOpacity>
+      {/* Floating Action Button Group */}
+      <View style={styles.fabContainer}>
+        {/* Plan Meals Button (Placed next to + Button) */}
+        <TouchableOpacity
+          style={[styles.fab, styles.planFab]}
+          activeOpacity={0.8}
+          onPress={handleNavigateToPlan}
+        >
+          <Ionicons name="calendar-outline" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+
+        {/* Add Meal FAB */}
+        <TouchableOpacity
+          style={styles.fab}
+          activeOpacity={0.8}
+          onPress={() => {
+            setSelectedMealForEdit(null);
+            setIsLogModalOpen(true);
+          }}
+        >
+          <Ionicons name="add" size={30} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
 
       <LogMealModal
         isVisible={isLogModalOpen}
-        onClose={() => { setIsLogModalOpen(false); setSelectedMealForEdit(null); }}
+        onClose={() => {
+          setIsLogModalOpen(false);
+          setSelectedMealForEdit(null);
+        }}
         targetDateString={targetDateString}
         mealToEdit={selectedMealForEdit}
       />
@@ -135,7 +166,19 @@ export default function DailyMealsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F2F7' },
-  daySummaryDashboard: { flexDirection: 'row', backgroundColor: '#FFFFFF', marginHorizontal: 20, marginTop: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#E5E5EA' },
+  daySummaryDashboard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
   summaryItem: { flexDirection: 'row', alignItems: 'center' },
   bullet: { width: 7, height: 7, borderRadius: 3.5, marginRight: 5 },
   summaryLabel: { fontSize: 12, color: '#8E8E93', fontWeight: '600', marginRight: 3 },
@@ -144,7 +187,17 @@ const styles = StyleSheet.create({
   listPadding: { paddingHorizontal: 20, paddingBottom: 90 },
   categorySection: { marginTop: 16 },
   categoryTitle: { fontSize: 16, fontWeight: '700', color: '#1C1C1E', marginBottom: 6 },
-  mealCard: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 10, marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: '#E5E5EA' },
+  mealCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 10,
+    marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
   mealMeta: { flex: 1 },
   mealName: { fontSize: 15, fontWeight: '600', color: '#1C1C1E' },
   cardMacroRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
@@ -154,5 +207,31 @@ const styles = StyleSheet.create({
   macroDot: { fontSize: 10, color: '#C7C7CC', marginHorizontal: 4 },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 60 },
   emptyText: { color: '#8E8E93', fontSize: 15, textAlign: 'center', marginTop: 8 },
-  fab: { position: 'absolute', right: 24, bottom: 24, backgroundColor: '#007AFF', width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', zIndex: 10 },
+
+  /* Side-by-side FAB container */
+  fabContainer: {
+    position: 'absolute',
+    right: 20,
+    bottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    zIndex: 10,
+  },
+  fab: {
+    backgroundColor: '#007AFF',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  planFab: {
+    backgroundColor: '#34C759', // Distinct green color for planning
+  },
 });
