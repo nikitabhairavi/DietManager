@@ -14,8 +14,10 @@ export default function Rewards() {
   // Read raw structural state values directly from stores
   const mealsByDay = useMealsStore((state) => state.mealsByDay);
 
-  // Read goals and active daily progress from GoalsStore
+  // Read goals and targets from GoalsStore
   const dailyCaloriesTarget = useGoalsStore((state) => state.dailyCaloriesTarget) || 2000;
+  const dailyProteinTarget = useGoalsStore((state) => state.dailyProteinTarget) || 120;
+  const dailyFiberTarget = useGoalsStore((state) => state.dailyFiberTarget) || 25;
   const dailyActiveCaloriesTarget = useGoalsStore((state) => state.dailyActiveCaloriesTarget) || 500;
   const dailyStepsTarget = useGoalsStore((state) => state.dailyStepsTarget) || 10000;
 
@@ -37,11 +39,11 @@ export default function Rewards() {
     return Math.min(100, Math.round(progress * 100));
   }, [currentBalance]);
 
-  // Compute live multi-goal qualification in the effect layer
+  // Compute detailed multi-tier rewards logic
   useEffect(() => {
     let computedEarned = 0;
 
-    // Collect all date keys across meals, active calories, and steps records
+    // Collect all unique date keys across meals, active calories, and steps records
     const allDateKeys = Array.from(
       new Set([
         ...Object.keys(mealsByDay),
@@ -52,24 +54,38 @@ export default function Rewards() {
 
     allDateKeys.forEach((dateKey) => {
       if (dateKey.startsWith(currentMonthString)) {
-        // 1. Calories Consumed Goal Check
         const dayMeals = mealsByDay[dateKey] || [];
-        const dailyTotalCalConsumed = dayMeals.reduce((sum, meal) => sum + meal.totalCalories, 0);
-        const isCalorieConsumedMet =
-          dailyTotalCalConsumed > 0 && dailyTotalCalConsumed <= dailyCaloriesTarget;
 
-        // 2. Active Calories Burned Goal Check
+        // Accumulate macro sums for the day
+        const dailyTotalCalories = dayMeals.reduce((sum, meal) => sum + (meal.totalCalories || 0), 0);
+        const dailyTotalProtein = dayMeals.reduce((sum, meal) => sum + (meal.totalProtein || 0), 0);
+        const dailyTotalFiber = dayMeals.reduce((sum, meal) => sum + (meal.totalFiber || 0), 0);
+
         const dayActiveCalories = activeCaloriesByDay[dateKey] || 0;
-        const isActiveCaloriesMet = dayActiveCalories >= dailyActiveCaloriesTarget;
-
-        // 3. Steps Completed Goal Check
         const daySteps = stepsByDay[dateKey] || 0;
+
+        // Individual Goal Criteria
+        const isProteinMet = dailyTotalProtein >= dailyProteinTarget;
+        const isFiberMet = dailyTotalFiber >= dailyFiberTarget;
+        const isCaloriesMet = dailyTotalCalories > 0 && dailyTotalCalories <= dailyCaloriesTarget;
+        const isActiveBurnMet = dayActiveCalories >= dailyActiveCaloriesTarget;
         const isStepsMet = daySteps >= dailyStepsTarget;
 
-        // ALL 3 conditions must be satisfied to earn +10 pts for the day
-        if (isCalorieConsumedMet && isActiveCaloriesMet && isStepsMet) {
-          computedEarned += 10;
+        let dayPoints = 0;
+
+        // Points Allocation
+        if (isProteinMet) dayPoints += 5;
+        if (isFiberMet) dayPoints += 5;
+        if (isCaloriesMet) dayPoints += 5;
+        if (isActiveBurnMet) dayPoints += 10;
+        if (isStepsMet) dayPoints += 5;
+
+        // Bonus for completing ALL 5 goals in a single day
+        if (isProteinMet && isFiberMet && isCaloriesMet && isActiveBurnMet && isStepsMet) {
+          dayPoints += 20;
         }
+
+        computedEarned += dayPoints;
       }
     });
 
@@ -79,6 +95,8 @@ export default function Rewards() {
     activeCaloriesByDay,
     stepsByDay,
     dailyCaloriesTarget,
+    dailyProteinTarget,
+    dailyFiberTarget,
     dailyActiveCaloriesTarget,
     dailyStepsTarget,
     currentMonthString,
@@ -90,7 +108,7 @@ export default function Rewards() {
     if (success) {
       Alert.alert("🎉 Reward Unlocked!", "50 Points redeemed successfully.");
     } else {
-      Alert.alert("Insufficient Balance", "Complete all 3 daily goals to stack up more points!");
+      Alert.alert("Insufficient Balance", "Keep crushing your daily nutrition and activity goals to stack up more points!");
     }
   };
 
@@ -130,15 +148,17 @@ export default function Rewards() {
           </View>
         </View>
 
-        {/* Reusable Total Earned vs Total Spent Row */}
+        {/* Total Earned vs Total Spent Row */}
         <View style={styles.row}>
           <StatCard label="Total Earned" value={pointsEarned} type="earned" />
           <StatCard label="Total Spent" value={pointsSpent} type="spent" />
         </View>
 
-        {/* Modular Daily Rules Card */}
+        {/* Daily Criteria Breakdown Card */}
         <DailyCriteriaCard
           dailyCaloriesTarget={dailyCaloriesTarget}
+          dailyProteinTarget={dailyProteinTarget}
+          dailyFiberTarget={dailyFiberTarget}
           dailyActiveCaloriesTarget={dailyActiveCaloriesTarget}
           dailyStepsTarget={dailyStepsTarget}
         />
@@ -162,7 +182,6 @@ const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: '#F2F2F7' },
   scrollContainer: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
   header: { marginBottom: 20 },
-  title: { fontSize: 32, fontWeight: '800', color: '#1C1C1E', letterSpacing: -0.5 },
   subtitle: { fontSize: 13, color: '#8E8E93', marginTop: 4, lineHeight: 18 },
 
   /* Hero Card */
