@@ -13,7 +13,6 @@ interface RewardMeal {
     image: string;
     category: string;
 }
-
 const REWARD_MEALS: RewardMeal[] = [
     {
         id: '1',
@@ -21,7 +20,8 @@ const REWARD_MEALS: RewardMeal[] = [
         cost: 800,
         calories: 450,
         protein: 8,
-        image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500',
+        // Updated to an actual ice cream image URL
+        image: 'https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=500',
         category: 'Dessert',
     },
     {
