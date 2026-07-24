@@ -4,10 +4,12 @@ import { useMealsStore } from '@/data/dataStores/meals/useMealsStore';
 import { useRewardsStore } from '@/data/dataStores/rewards/useRewardsStore';
 import { useGoalsStore } from '@/data/dataStores/useGoalStore';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo } from 'react';
-import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function Rewards() {
+  const router = useRouter();
   const now = useMemo(() => new Date(), []);
   const currentMonthString = useMemo(() => now.toISOString().slice(0, 7), [now]);
 
@@ -27,7 +29,6 @@ export default function Rewards() {
   const pointsEarned = useRewardsStore((state) => state.pointsEarned);
   const pointsSpent = useRewardsStore((state) => state.pointsSpent);
   const syncPoints = useRewardsStore((state) => state.syncPoints);
-  const redeemPoints = useRewardsStore((state) => state.redeemPoints);
 
   const currentBalance = useMemo(() => {
     return Math.max(0, pointsEarned - pointsSpent);
@@ -43,7 +44,6 @@ export default function Rewards() {
   useEffect(() => {
     let computedEarned = 0;
 
-    // Collect all unique date keys across meals, active calories, and steps records
     const allDateKeys = Array.from(
       new Set([
         ...Object.keys(mealsByDay),
@@ -56,7 +56,6 @@ export default function Rewards() {
       if (dateKey.startsWith(currentMonthString)) {
         const dayMeals = mealsByDay[dateKey] || [];
 
-        // Accumulate macro sums for the day
         const dailyTotalCalories = dayMeals.reduce((sum, meal) => sum + (meal.totalCalories || 0), 0);
         const dailyTotalProtein = dayMeals.reduce((sum, meal) => sum + (meal.totalProtein || 0), 0);
         const dailyTotalFiber = dayMeals.reduce((sum, meal) => sum + (meal.totalFiber || 0), 0);
@@ -64,7 +63,6 @@ export default function Rewards() {
         const dayActiveCalories = activeCaloriesByDay[dateKey] || 0;
         const daySteps = stepsByDay[dateKey] || 0;
 
-        // Individual Goal Criteria
         const isProteinMet = dailyTotalProtein >= dailyProteinTarget;
         const isFiberMet = dailyTotalFiber >= dailyFiberTarget;
         const isCaloriesMet = dailyTotalCalories > 0 && dailyTotalCalories <= dailyCaloriesTarget;
@@ -73,14 +71,12 @@ export default function Rewards() {
 
         let dayPoints = 0;
 
-        // Points Allocation
         if (isProteinMet) dayPoints += 5;
         if (isFiberMet) dayPoints += 5;
         if (isCaloriesMet) dayPoints += 5;
         if (isActiveBurnMet) dayPoints += 10;
         if (isStepsMet) dayPoints += 5;
 
-        // Bonus for completing ALL 5 goals in a single day
         if (isProteinMet && isFiberMet && isCaloriesMet && isActiveBurnMet && isStepsMet) {
           dayPoints += 20;
         }
@@ -103,13 +99,8 @@ export default function Rewards() {
     syncPoints,
   ]);
 
-  const handleRedeem = () => {
-    const success = redeemPoints(50);
-    if (success) {
-      Alert.alert("🎉 Reward Unlocked!", "50 Points redeemed successfully.");
-    } else {
-      Alert.alert("Insufficient Balance", "Keep crushing your daily nutrition and activity goals to stack up more points!");
-    }
+  const handleRedeemNavigation = () => {
+    router.push('../rewards/RewardsMealsScreen');
   };
 
   return (
@@ -136,7 +127,7 @@ export default function Rewards() {
             {currentBalance} <Text style={styles.ptsUnit}>PTS</Text>
           </Text>
 
-          {/* Progress Bar towards next 50-point milestone */}
+          {/* Progress Bar towards next reward */}
           <View style={styles.progressSection}>
             <View style={styles.progressLabelRow}>
               <Text style={styles.progressText}>Next Reward Goal</Text>
@@ -165,13 +156,12 @@ export default function Rewards() {
 
         {/* Redeem Action Button */}
         <TouchableOpacity
-          style={[styles.actionButton, currentBalance < 50 && styles.disabledButton]}
-          onPress={handleRedeem}
-          disabled={currentBalance < 50}
+          style={styles.actionButton}
+          onPress={handleRedeemNavigation}
           activeOpacity={0.8}
         >
           <Ionicons name="gift-outline" size={22} color="#FFFFFF" style={styles.iconGap} />
-          <Text style={styles.actionText}>Redeem 50 Points</Text>
+          <Text style={styles.actionText}>Redeem</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -184,7 +174,6 @@ const styles = StyleSheet.create({
   header: { marginBottom: 20 },
   subtitle: { fontSize: 13, color: '#8E8E93', marginTop: 4, lineHeight: 18 },
 
-  /* Hero Card */
   heroCard: {
     backgroundColor: '#111827',
     borderRadius: 24,
@@ -234,7 +223,6 @@ const styles = StyleSheet.create({
     color: '#FFD700',
   },
 
-  /* Progress Bar */
   progressSection: { marginTop: 18 },
   progressLabelRow: {
     flexDirection: 'row',
@@ -255,10 +243,8 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
 
-  /* Split Row Layout */
   row: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 },
 
-  /* Action Button */
   actionButton: {
     backgroundColor: '#007AFF',
     flexDirection: 'row',
@@ -273,7 +259,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  disabledButton: { backgroundColor: '#C7C7CC', shadowOpacity: 0 },
   iconGap: { marginRight: 8 },
   actionText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
 });
