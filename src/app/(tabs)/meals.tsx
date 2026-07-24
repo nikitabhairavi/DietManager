@@ -129,13 +129,13 @@ export default function DailyMealsScreen() {
 
       {/* Floating Action Button Group */}
       <View style={styles.fabContainer}>
-        {/* Plan Meals Button (Placed next to + Button) */}
+        {/* Plan Meals Button (To-Do Checklist Icon) */}
         <TouchableOpacity
           style={[styles.fab, styles.planFab]}
           activeOpacity={0.8}
           onPress={handleNavigateToPlan}
         >
-          <Ionicons name="calendar-outline" size={24} color="#FFFFFF" />
+          <Ionicons name="checkbox-outline" size={24} color="#FFFFFF" />
         </TouchableOpacity>
 
         {/* Add Meal FAB */}
@@ -232,6 +232,6 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   planFab: {
-    backgroundColor: '#34C759', // Distinct green color for planning
+    backgroundColor: '#34C759',
   },
 });
