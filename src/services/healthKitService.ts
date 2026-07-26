@@ -1,6 +1,6 @@
 import AppleHealthKit, {
-    HealthKitPermissions,
-    HealthValue,
+  HealthKitPermissions,
+  HealthValue,
 } from 'react-native-health';
 
 const permissions: HealthKitPermissions = {
@@ -31,29 +31,63 @@ export const initHealthKit = (): Promise<boolean> => {
     });
   });
 };
+
+/**
+ * Helper to produce accurate local start and end dates for HealthKit queries
+ */
+const getDayBounds = (targetDate: Date) => {
+  const start = new Date(
+    targetDate.getFullYear(),
+    targetDate.getMonth(),
+    targetDate.getDate(),
+    0,
+    0,
+    0,
+    0
+  );
+
+  const end = new Date(
+    targetDate.getFullYear(),
+    targetDate.getMonth(),
+    targetDate.getDate(),
+    23,
+    59,
+    59,
+    999
+  );
+
+  return {
+    startDate: start.toISOString(),
+    endDate: end.toISOString(),
+  };
+};
+
+/**
+ * Fetch total steps for a specific historical target date using sample logs
+ */
 export const fetchStepsForDate = (date: Date): Promise<number> => {
   return new Promise((resolve) => {
-    // Start of the selected day (00:00:00)
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
-
-    // End of the selected day (23:59:59)
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
+    const { startDate, endDate } = getDayBounds(date);
 
     const options = {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
+      startDate,
+      endDate,
     };
 
-    AppleHealthKit.getStepCount(options, (err, results) => {
-      if (err) {
-        console.log('[HealthKit] Error fetching steps:', err);
-        resolve(0);
-        return;
+    AppleHealthKit.getDailyStepCountSamples(
+      options,
+      (err: string, results: Array<HealthValue>) => {
+        if (err || !results || results.length === 0) {
+          // Default directly to 0 if no samples exist for this date
+          resolve(0);
+          return;
+        }
+
+        // Sum step counts returned in the daily samples array
+        const totalSteps = results.reduce((sum, item) => sum + (item.value || 0), 0);
+        resolve(Math.round(totalSteps));
       }
-      resolve(results ? results.value : 0);
-    });
+    );
   });
 };
 /**
@@ -61,27 +95,22 @@ export const fetchStepsForDate = (date: Date): Promise<number> => {
  */
 export const fetchActiveCaloriesForDate = (targetDate: Date): Promise<number> => {
   return new Promise((resolve) => {
-    const startDate = new Date(targetDate);
-    startDate.setHours(0, 0, 0, 0);
-
-    const endDate = new Date(targetDate);
-    endDate.setHours(23, 59, 59, 999);
+    const { startDate, endDate } = getDayBounds(targetDate);
 
     const options = {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
+      startDate,
+      endDate,
     };
 
     AppleHealthKit.getActiveEnergyBurned(
       options,
-      (err: Object, results: Array<HealthValue>) => {
+      (err: string, results: Array<HealthValue>) => {
         if (err || !results) {
           console.log('[HealthKit] Error fetching active calories:', err);
           resolve(0);
           return;
         }
 
-        // Sum up active calories recorded across all Apple Watch samples for the day
         const totalBurned = results.reduce((sum, item) => sum + item.value, 0);
         resolve(Math.round(totalBurned));
       }
