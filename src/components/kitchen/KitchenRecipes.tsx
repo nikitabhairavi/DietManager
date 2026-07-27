@@ -1,5 +1,5 @@
 import { useRecipeStore } from '@/data/dataStores/recipeStore/useRecipeStore';
-import { RecipeDetailModal } from '@/modals/RecipeDetailModal';
+import { EditRecipeModal } from '@/modals/EditRecipeModal';
 import { Recipe } from '@/types/RecipeTypes';
 import React, { useEffect, useState } from 'react';
 import {
@@ -17,7 +17,6 @@ interface KitchenRecipesProps {
 }
 
 export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) => {
-  // 1. ALL HOOKS DECLARED AT TOP LEVEL
   const recipes = useRecipeStore((state) => state.recipes);
   const isInitialLoading = useRecipeStore((state) => state.isInitialLoading);
   const isRefreshing = useRecipeStore((state) => state.isRefreshing);
@@ -25,15 +24,13 @@ export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) =
   const fetchRecipes = useRecipeStore((state) => state.fetchRecipes);
   const removeRecipe = useRecipeStore((state) => state.deleteRecipe);
 
-  // States to handle visibility and the context of the active modal sheet
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
   useEffect(() => {
     loadInitialRecipes();
   }, [loadInitialRecipes]);
 
-  // 2. EARLY RETURNS / CONDITIONAL RENDERING GO AFTER ALL HOOKS
   if (isInitialLoading) {
     return (
       <View style={[styles.wrapper, styles.centerContent]}>
@@ -42,22 +39,20 @@ export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) =
     );
   }
 
-  // 3. EVENT HANDLERS & COMPUTED VALUES
   const filteredRecipes = recipes.filter((rec) =>
     rec.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleOpenDetails = (recipe: Recipe) => {
+  const handleOpenEditModal = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
-    setIsModalVisible(true);
+    setIsEditModalVisible(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalVisible(false);
+  const handleCloseEditModal = () => {
+    setIsEditModalVisible(false);
     setSelectedRecipe(null);
   };
 
-  // 4. MAIN JSX RENDER WITH REFRESH CONTROL
   return (
     <View style={styles.wrapper}>
       <FlatList
@@ -70,7 +65,7 @@ export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) =
         renderItem={({ item }) => (
           <RecipeCard
             item={item}
-            onPress={handleOpenDetails}
+            onPress={handleOpenEditModal}
             onDelete={removeRecipe}
           />
         )}
@@ -81,11 +76,11 @@ export const KitchenRecipes: React.FC<KitchenRecipesProps> = ({ searchQuery }) =
         }
       />
 
-      {/* Embedded Portal Layer for Recipe Specific Updates */}
-      <RecipeDetailModal
-        recipe={selectedRecipe}
-        isVisible={isModalVisible}
-        onClose={handleCloseModal}
+      {/* Separate Dedicated Edit Recipe Modal */}
+      <EditRecipeModal
+        recipeToEdit={selectedRecipe}
+        isVisible={isEditModalVisible}
+        onClose={handleCloseEditModal}
       />
     </View>
   );
@@ -102,7 +97,7 @@ const styles = StyleSheet.create({
   listPadding: {
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 100, // Extra clearance for floating elements
+    paddingBottom: 100,
   },
   emptyText: {
     textAlign: 'center',

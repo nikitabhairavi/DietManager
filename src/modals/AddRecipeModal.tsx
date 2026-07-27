@@ -1,7 +1,7 @@
 import { useIngredientsStore } from '@/data/dataStores/ingredientsStore/useIngredientStore';
 import { useRecipeStore } from '@/data/dataStores/recipeStore/useRecipeStore';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Keyboard,
@@ -37,17 +37,26 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
 
   const [recipeName, setRecipeName] = useState('');
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Filter ingredients dynamically based on search query
+  // Clear state whenever modal opens
+  useEffect(() => {
+    if (isVisible) {
+      setRecipeName('');
+      setSelectedItems([]);
+      setSearchQuery('');
+      setIsSearching(false);
+    }
+  }, [isVisible]);
+
   const filteredAvailableIngredients = useMemo(() => {
+    if (!searchQuery.trim()) return availableIngredients;
     return availableIngredients.filter((ing) =>
       ing.name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [availableIngredients, searchQuery]);
 
-  // Core Calculator: Safely parse rolling fractional strings to numbers
   const totals = useMemo(() => {
     return selectedItems.reduce(
       (acc, item) => {
@@ -63,8 +72,9 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
 
   const handleSelectIngredient = (ing: typeof availableIngredients[0]) => {
     if (selectedItems.some((item) => item.ingredientId === ing.id)) {
-      setShowDropdown(false);
       setSearchQuery('');
+      setIsSearching(false);
+      Keyboard.dismiss();
       return;
     }
 
@@ -80,8 +90,9 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
         fiberPerUnit: ing.fiberPerUnit,
       },
     ]);
-    setShowDropdown(false);
     setSearchQuery('');
+    setIsSearching(false);
+    Keyboard.dismiss();
   };
 
   const handleUpdateUnits = (id: string, text: string) => {
@@ -117,9 +128,6 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
       totalFiber: parseFloat(totals.fiber.toFixed(1)),
     });
 
-    setRecipeName('');
-    setSelectedItems([]);
-    setSearchQuery('');
     onClose();
   };
 
@@ -132,133 +140,150 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isVisible, onClo
             style={styles.keyboardContainer}
           >
             <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>Create Recipe</Text>
+              <View style={styles.headerRow}>
+                <Text style={styles.modalTitle}>Create Recipe</Text>
+                <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Ionicons name="close" size={24} color="#000" />
+                </TouchableOpacity>
+              </View>
 
-              {/* Recipe Title Field */}
-              <Text style={styles.inputLabel}>Recipe Name</Text>
+              <Text style={styles.inputLabel}>Recipe Identity Name</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="e.g., High-Protein Chicken Curry"
+                placeholder="e.g., Salmon and Rice"
                 placeholderTextColor="#999"
                 value={recipeName}
                 onChangeText={setRecipeName}
               />
 
-              {/* Ingredient Dropdown Anchor Button */}
-              <Text style={styles.inputLabel}>Add Ingredients</Text>
-              <View style={styles.searchBlock}>
-                <TouchableOpacity
-                  style={styles.dropdownAnchor}
-                  onPress={() => setShowDropdown(!showDropdown)}
-                >
-                  <Text style={styles.dropdownAnchorText}>Tap to pick from Kitchen...</Text>
-                  <Ionicons
-                    name={showDropdown ? 'chevron-up' : 'chevron-down'}
-                    size={20}
-                    color="#666"
-                  />
-                </TouchableOpacity>
+              <View style={styles.macroDashboard}>
+                <View style={[styles.macroBadge, { backgroundColor: '#EBF5FF' }]}>
+                  <Text style={[styles.macroValue, { color: '#007AFF' }]}>
+                    {totals.calories.toFixed(0)}
+                  </Text>
+                  <Text style={[styles.macroLabelText, { color: '#007AFF' }]}>kcal</Text>
+                </View>
 
-                {/* Expandable Kitchen Stock Dropdown Overlay with Search */}
-                {showDropdown && (
-                  <View style={styles.dropdownListContainer}>
-                    <View style={styles.searchBarContainer}>
-                      <Ionicons name="search" size={16} color="#999" style={styles.searchIcon} />
-                      <TextInput
-                        style={styles.dropdownSearchInput}
-                        placeholder="Search kitchen ingredients..."
-                        placeholderTextColor="#999"
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        autoFocus
-                      />
-                    </View>
+                <View style={[styles.macroBadge, { backgroundColor: '#EAF8EA' }]}>
+                  <Text style={[styles.macroValue, { color: '#34C759' }]}>
+                    {totals.protein.toFixed(1)}g
+                  </Text>
+                  <Text style={[styles.macroLabelText, { color: '#34C759' }]}>Protein</Text>
+                </View>
 
-                    <FlatList
-                      data={filteredAvailableIngredients}
-                      keyExtractor={(item) => item.id}
-                      style={{ maxHeight: 150 }}
-                      nestedScrollEnabled
-                      keyboardShouldPersistTaps="handled"
-                      renderItem={({ item }) => (
-                        <TouchableOpacity
-                          style={styles.dropdownItem}
-                          onPress={() => handleSelectIngredient(item)}
-                        >
-                          <Text style={styles.dropdownItemText}>{item.name}</Text>
-                          <Text style={styles.dropdownItemSub}>
-                            Per unit: {item.quantityPerUnit} | {item.caloriesPerUnit} kcal
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                      ListEmptyComponent={
-                        <Text style={styles.dropdownEmptyText}>No ingredients found.</Text>
-                      }
-                    />
-                  </View>
+                <View style={[styles.macroBadge, { backgroundColor: '#F8EAF8' }]}>
+                  <Text style={[styles.macroValue, { color: '#AF52DE' }]}>
+                    {totals.fiber.toFixed(1)}g
+                  </Text>
+                  <Text style={[styles.macroLabelText, { color: '#AF52DE' }]}>Fiber</Text>
+                </View>
+              </View>
+
+              <Text style={styles.inputLabel}>Search & Inject Ingredients</Text>
+              <View style={styles.searchBarContainer}>
+                <Ionicons name="search" size={18} color="#999" style={styles.searchIcon} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Type to search kitchen stock..."
+                  placeholderTextColor="#999"
+                  value={searchQuery}
+                  onChangeText={(text) => {
+                    setSearchQuery(text);
+                    setIsSearching(text.length > 0);
+                  }}
+                  onFocus={() => setIsSearching(true)}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSearchQuery('');
+                      setIsSearching(false);
+                    }}
+                  >
+                    <Ionicons name="close-circle" size={18} color="#999" />
+                  </TouchableOpacity>
                 )}
               </View>
 
-              {/* Interactive Selected Items Sandbox Grid */}
-              <Text style={[styles.inputLabel, { marginTop: 10 }]}>Selected Composition</Text>
-              <View style={styles.selectedListContainer}>
-                <FlatList
-                  data={selectedItems}
-                  keyExtractor={(item) => item.ingredientId}
-                  style={styles.selectedItemsList}
-                  showsVerticalScrollIndicator={true}
-                  nestedScrollEnabled
-                  renderItem={({ item }) => (
-                    <View style={styles.selectedItemRow}>
-                      <View style={styles.selectedItemInfo}>
-                        <Text style={styles.selectedItemName} numberOfLines={1}>
-                          {item.name}
-                        </Text>
-                        <Text style={styles.selectedItemMetric}>
-                          Base unit: {item.quantityPerUnit}
-                        </Text>
-                      </View>
-
-                      <View style={styles.unitInputContainer}>
-                        <TextInput
-                          style={styles.unitInput}
-                          keyboardType="decimal-pad"
-                          value={item.units}
-                          onChangeText={(text) => handleUpdateUnits(item.ingredientId, text)}
-                        />
-                        <Text style={styles.unitLabel}>x units</Text>
-                      </View>
-
-                      <TouchableOpacity onPress={() => handleRemoveItem(item.ingredientId)}>
-                        <Ionicons name="close-circle" size={22} color="#FF3B30" />
+              {isSearching ? (
+                <View style={styles.inlineResultsContainer}>
+                  <View style={styles.resultsHeader}>
+                    <Text style={styles.resultsHeaderText}>Tap an ingredient to add</Text>
+                    <TouchableOpacity onPress={() => setIsSearching(false)}>
+                      <Text style={styles.doneBtnText}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <FlatList
+                    data={filteredAvailableIngredients}
+                    keyExtractor={(item) => item.id}
+                    keyboardShouldPersistTaps="handled"
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.inlineResultRow}
+                        onPress={() => handleSelectIngredient(item)}
+                      >
+                        <View style={styles.resultMainInfo}>
+                          <Text style={styles.resultTitle} numberOfLines={1} ellipsizeMode="tail">
+                            {item.name}
+                          </Text>
+                          <Text style={styles.resultSubtitle} numberOfLines={1} ellipsizeMode="tail">
+                            Base: {item.quantityPerUnit} • {item.caloriesPerUnit} kcal
+                          </Text>
+                        </View>
+                        <Ionicons name="add-circle-outline" size={22} color="#007AFF" />
                       </TouchableOpacity>
-                    </View>
-                  )}
-                  ListEmptyComponent={
-                    <Text style={styles.emptySelectedText}>
-                      No ingredients added yet. Pick from above.
-                    </Text>
-                  }
-                />
-              </View>
+                    )}
+                    ListEmptyComponent={
+                      <Text style={styles.emptyText}>No matching ingredients found.</Text>
+                    }
+                  />
+                </View>
+              ) : (
+                <View style={styles.selectedListContainer}>
+                  <Text style={styles.inputLabel}>Current Composition</Text>
+                  <FlatList
+                    data={selectedItems}
+                    keyExtractor={(item) => item.ingredientId}
+                    style={styles.selectedItemsList}
+                    showsVerticalScrollIndicator={true}
+                    renderItem={({ item }) => (
+                      <View style={styles.selectedItemRow}>
+                        <View style={styles.selectedItemInfo}>
+                          <Text style={styles.selectedItemName} numberOfLines={1} ellipsizeMode="tail">
+                            {item.name}
+                          </Text>
+                          <Text style={styles.selectedItemMetric}>
+                            Base unit: {item.quantityPerUnit}
+                          </Text>
+                        </View>
 
-              {/* Real-time Core Macro Output Monitor */}
-              <View style={styles.macroDashboard}>
-                <View style={styles.macroMetric}>
-                  <Text style={styles.macroValue}>{totals.calories.toFixed(0)}</Text>
-                  <Text style={styles.macroLabelText}>Calories</Text>
-                </View>
-                <View style={styles.macroMetric}>
-                  <Text style={styles.macroValue}>{totals.protein.toFixed(1)}g</Text>
-                  <Text style={styles.macroLabelText}>Protein</Text>
-                </View>
-                <View style={styles.macroMetric}>
-                  <Text style={styles.macroValue}>{totals.fiber.toFixed(1)}g</Text>
-                  <Text style={styles.macroLabelText}>Fiber</Text>
-                </View>
-              </View>
+                        <View style={styles.rightControls}>
+                          <View style={styles.unitInputContainer}>
+                            <TextInput
+                              style={styles.unitInput}
+                              keyboardType="decimal-pad"
+                              value={item.units}
+                              onChangeText={(text) => handleUpdateUnits(item.ingredientId, text)}
+                            />
+                            <Text style={styles.unitLabel}>x</Text>
+                          </View>
 
-              {/* Footer Action Matrix */}
+                          <TouchableOpacity
+                            onPress={() => handleRemoveItem(item.ingredientId)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Ionicons name="close-circle" size={22} color="#FF3B30" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+                    ListEmptyComponent={
+                      <Text style={styles.emptyText}>No ingredients added yet.</Text>
+                    }
+                  />
+                </View>
+              )}
+
               <View style={styles.actionRow}>
                 <TouchableOpacity style={[styles.btn, styles.btnCancel]} onPress={onClose}>
                   <Text style={styles.btnCancelText}>Cancel</Text>
@@ -279,131 +304,142 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'flex-end', // Sheets open smoothly from bottom
+    justifyContent: 'flex-end',
   },
   keyboardContainer: {
     width: '100%',
-    height: '92%', // Takes up 92% of screen height
+    height: '92%',
   },
   modalContainer: {
     flex: 1,
     backgroundColor: '#FFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingHorizontal: 22,
-    paddingTop: 22,
+    paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: Platform.OS === 'ios' ? 30 : 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 6,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#111',
-    marginBottom: 16,
-    textAlign: 'center',
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#8E8E93',
     textTransform: 'uppercase',
     marginBottom: 6,
+    letterSpacing: 0.5,
   },
   textInput: {
-    backgroundColor: '#F5F5F7',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: '#000',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  searchBlock: {
-    position: 'relative',
-    zIndex: 20,
-    marginBottom: 6,
-  },
-  dropdownAnchor: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F7',
+    backgroundColor: '#F2F2F7',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
+    fontSize: 16,
+    color: '#000',
+    marginBottom: 14,
   },
-  dropdownAnchorText: {
-    fontSize: 15,
-    color: '#666',
+  macroDashboard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 8,
   },
-  dropdownListContainer: {
-    position: 'absolute',
-    top: 50,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 10,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-    zIndex: 30,
+  macroBadge: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  macroValue: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  macroLabelText: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
   },
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F7',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 10,
     paddingHorizontal: 12,
+    marginBottom: 12,
   },
   searchIcon: {
-    marginRight: 6,
+    marginRight: 8,
   },
-  dropdownSearchInput: {
+  searchInput: {
     flex: 1,
-    paddingVertical: 10,
-    fontSize: 14,
+    paddingVertical: 12,
+    fontSize: 15,
     color: '#000',
   },
-  dropdownItem: {
-    flexDirection: 'column',
-    justifyContent: 'center',
-    padding: 12,
+  inlineResultsContainer: {
+    flex: 1,
+    backgroundColor: '#FAFAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    padding: 10,
+    marginBottom: 12,
+  },
+  resultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    marginBottom: 6,
+  },
+  resultsHeaderText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#8E8E93',
+    textTransform: 'uppercase',
+  },
+  doneBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  inlineResultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#F2F2F7',
   },
-  dropdownItemText: {
+  resultMainInfo: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  resultTitle: {
     fontSize: 15,
+    fontWeight: '600',
     color: '#000',
-    fontWeight: '500',
-    marginBottom: 2,
   },
-  dropdownItemSub: {
-    fontSize: 13,
+  resultSubtitle: {
+    fontSize: 12,
     color: '#8E8E93',
-  },
-  dropdownEmptyText: {
-    textAlign: 'center',
-    color: '#8E8E93',
-    fontSize: 14,
-    paddingVertical: 16,
+    marginTop: 2,
   },
   selectedListContainer: {
-    flex: 1, // Dynamically expands to fill all available space in the modal body
-    marginVertical: 4,
+    flex: 1,
   },
   selectedItemsList: {
     flex: 1,
@@ -411,82 +447,67 @@ const styles = StyleSheet.create({
   selectedItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#FAFAFC',
-    padding: 10,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
     marginBottom: 8,
     borderWidth: 1,
     borderColor: '#E5E5EA',
   },
   selectedItemInfo: {
     flex: 1,
-    marginRight: 8,
+    paddingRight: 10,
   },
   selectedItemName: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#333',
-    marginBottom: 2,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1C1C1E',
   },
   selectedItemMetric: {
     fontSize: 12,
     color: '#8E8E93',
+    marginTop: 2,
+  },
+  rightControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   unitInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 12,
+    gap: 4,
   },
   unitInput: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#C7C7CC',
     borderRadius: 6,
-    width: 54,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
+    width: 46,
+    height: 32,
     textAlign: 'center',
     fontSize: 14,
     color: '#000',
     fontWeight: '600',
+    paddingVertical: 0,
   },
   unitLabel: {
     fontSize: 12,
-    color: '#666',
-    marginLeft: 4,
+    fontWeight: '500',
+    color: '#8E8E93',
   },
-  emptySelectedText: {
+  emptyText: {
     textAlign: 'center',
     color: '#8E8E93',
     fontSize: 14,
     marginVertical: 20,
   },
-  macroDashboard: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#F2F2F7',
-    borderRadius: 12,
-    paddingVertical: 10,
-    marginBottom: 16,
-    marginTop: 6,
-  },
-  macroMetric: {
-    alignItems: 'center',
-  },
-  macroValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#007AFF',
-  },
-  macroLabelText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#666',
-    marginTop: 2,
-  },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 10,
   },
   btn: {
     flex: 0.48,
